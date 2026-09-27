@@ -62,16 +62,20 @@ python demo.py
 # Install dependencies
 pip install -e ".[dev]"
 
+# Local Postgres for integration/e2e tests and local API runs
+docker compose up -d db
+
 # Tests
 pytest tests/unit            # domain + application, no DB
 pytest tests/integration     # requires a running Postgres (see docker-compose.yml)
-pytest tests/e2e             # full FastAPI stack
+pytest tests/e2e             # full FastAPI stack (TestClient + dependency_overrides)
 
 # Lint
 ruff check src tests
 
-# Run the API locally
+# Run the API + frontend locally
 uvicorn procurement.infrastructure.main:app --reload
+# then open http://localhost:8000/  (frontend)  or  /docs  (Swagger UI)
 
 # Docker
 docker build -t procurement-orchestrator .

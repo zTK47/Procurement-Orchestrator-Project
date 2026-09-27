@@ -67,10 +67,25 @@ class ProcurementRequestModel(Base):
     cost_center_id: Mapped[str] = mapped_column(ForeignKey("cost_centers.id"), nullable=False)
     raw_text: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="CREATED")
+
+    # ParsedRequest (flattened -- simplest mapping for this prototype; a
+    # separate ParsedRequestModel table would be the next refinement)
+    parsed_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    parsed_product_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    parsed_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    parsed_confidence: Mapped[float | None] = mapped_column(Numeric(4, 3), nullable=True)
+
     resolved_sku: Mapped[str | None] = mapped_column(String, nullable=True)
     resolved_supplier_id: Mapped[str | None] = mapped_column(String, nullable=True)
     amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+
+    stock_check: Mapped[str | None] = mapped_column(String, nullable=True)
+    budget_check: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Comma-separated for simplicity in this prototype (e.g. "MANAGER,BUDGET_OWNER").
+    required_approval_levels: Mapped[str | None] = mapped_column(String, nullable=True)
+    history: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class ApprovalModel(Base):

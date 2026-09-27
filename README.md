@@ -146,13 +146,14 @@ Zero-dependency sanity check (domain + application layers only):
 python demo.py
 ```
 
-Full API:
+Full API + frontend:
 
 ```bash
 pip install -e ".[dev]"
 docker compose up -d db          # local Postgres
 uvicorn procurement.infrastructure.main:app --reload
-# API docs: http://localhost:8000/docs
+# Frontend:   http://localhost:8000/
+# Swagger UI: http://localhost:8000/docs
 ```
 
 Or fully containerized:
@@ -161,17 +162,25 @@ Or fully containerized:
 docker compose up
 ```
 
+The frontend (`interfaces/static/index.html`) is a minimal vanilla-JS page
+that calls every endpoint directly — useful for manually walking through
+both intake modes (free text and direct catalog selection) during the
+presentation demo.
+
 ## Running Tests
 
 ```bash
 pytest tests/unit          # domain + application — no DB required
-pytest tests/integration   # requires a running Postgres (docker-compose up -d db)
-pytest tests/e2e           # full FastAPI stack
+pytest tests/integration   # requires a running Postgres (docker compose up -d db)
+pytest tests/e2e           # full FastAPI stack via TestClient
 ```
 
-As of this commit: **44/44 unit tests passing**. Integration and E2E tests
-are scaffolded (`tests/integration/`, `tests/e2e/`) and tracked as a backlog
-item in `docs/TASKS.md` (Phase 4).
+**Status:** 44/44 unit tests are verified passing (executed repeatedly
+during development). The integration and e2e test suites were written
+against the same specs but, due to sandbox constraints during development,
+have not yet been executed against a real Postgres instance — this is
+tracked as the top backlog item in `docs/TASKS.md`. Run them and report/fix
+any failures as the next step.
 
 ## CI/CD & Deployment
 
@@ -195,8 +204,10 @@ procurement-orchestrator/
 ├── src/procurement/
 │   ├── domain/            # entities, value objects, domain services
 │   ├── application/       # use cases + abstract ports
-│   ├── interfaces/api/    # FastAPI routers, Pydantic schemas
-│   └── infrastructure/    # SQLAlchemy, mock LLM adapter, DI wiring
+│   ├── interfaces/
+│   │   ├── api/            # FastAPI routers, Pydantic schemas, Depends wiring
+│   │   └── static/          # minimal vanilla-JS frontend (index.html)
+│   └── infrastructure/    # SQLAlchemy models/repos, mock LLM adapter, DI wiring
 ├── tests/{unit,integration,e2e}/
 └── docs/
     ├── PROJECT.md          # architecture & domain reference
