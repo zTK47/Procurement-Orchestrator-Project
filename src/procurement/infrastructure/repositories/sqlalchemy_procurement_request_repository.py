@@ -33,7 +33,7 @@ def _to_domain(model: ProcurementRequestModel) -> ProcurementRequest:
             quantity=model.parsed_quantity,
             product_name=model.parsed_product_name,
             category=model.parsed_category,
-            confidence=model.parsed_confidence,
+            confidence=float(model.parsed_confidence),  # Numeric column -> Decimal from the driver
         )
     if model.resolved_sku is not None:
         request.resolved_sku = SKU(model.resolved_sku)

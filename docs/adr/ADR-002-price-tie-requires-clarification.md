@@ -1,6 +1,6 @@
 # ADR-002: Price ties in the Sourcing Funnel require human clarification
 
-**Status:** Proposed (awaiting team confirmation before submission)
+**Status:** Accepted (27.09.2026)
 
 ## Context
 The original whiteboard brainstorm suggested resolving a price tie
@@ -8,7 +8,7 @@ automatically: `return min(matching_items, key=lambda x: x.unit_price)`.
 During implementation we chose the opposite: raise
 `RequiresClarificationError` and stop, requiring a human to pick.
 
-## Decision (proposed)
+## Decision
 When two or more `CatalogItem`s tie for the lowest price after filtering,
 the `SourcingRule` domain service raises `RequiresClarificationError`
 instead of picking one arbitrarily (e.g. by insertion order, which is what
@@ -21,14 +21,16 @@ instead of picking one arbitrarily (e.g. by insertion order, which is what
 - Raising a clear domain error keeps the decision auditable and gives a
   human (or a future "tie-breaker" business rule) an explicit point to
   intervene, rather than hiding it inside `min()`'s ordering behavior.
+- This is exactly the kind of deliberate deviation from an initial
+  brainstorm that the AI-SDLC process (Design phase, Architecture Gates) is
+  meant to surface and document, rather than silently overriding.
 
 ## Consequences
 - The pipeline stops and surfaces a 422 error via the API when a tie
   occurs, instead of silently completing.
 - This is a deliberate deviation from the original brainstorm and is
   presented explicitly in the capstone presentation as an architecture
-  decision worth discussing.
-- **Action required:** the team must explicitly accept or reject this ADR
-  before submission (see AGENTS.md "Architecture Gates"). If rejected,
-  `SourcingRule.resolve` should fall back to `min(candidates, key=...)`
-  instead of raising on ties.
+  decision worth discussing (see `docs/LEARNINGS.md`).
+- If the team later decides differently, `SourcingRule.resolve` should fall
+  back to `min(candidates, key=...)` instead of raising on ties -- this ADR
+  should then be superseded, not silently edited.

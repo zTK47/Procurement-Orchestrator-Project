@@ -1,6 +1,6 @@
 """FastAPI application entry point.
 
-Repository/adapter wiring now happens via FastAPI's Depends mechanism (see
+Repository/adapter wiring happens via FastAPI's Depends mechanism (see
 interfaces/api/dependencies.py) rather than app.state -- each request gets
 its own DB session (infrastructure/db.py: get_db_session).
 
@@ -9,6 +9,7 @@ Run locally with:
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -23,23 +24,28 @@ from procurement.interfaces.api.procurement_router import router as procurement_
 STATIC_DIR = Path(__file__).parent.parent / "interfaces" / "static"
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    engine = get_engine()
+    Base.metadata.create_all(engine)
+    session_factory = get_session_factory()
+    session = session_factory()
+    try:
+        seed_database(session)
+    finally:
+        session.close()
+    yield
+    # No shutdown cleanup needed: get_engine()/get_session_factory() are
+    # process-lifetime cached (functools.lru_cache in db.py).
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Procurement Orchestrator",
         description="AI-assisted enterprise procurement request pipeline.",
         version="0.1.0",
+        lifespan=lifespan,
     )
-
-    @app.on_event("startup")
-    def on_startup() -> None:
-        engine = get_engine()
-        Base.metadata.create_all(engine)
-        session_factory = get_session_factory()
-        session = session_factory()
-        try:
-            seed_database(session)
-        finally:
-            session.close()
 
     app.include_router(procurement_router)
 

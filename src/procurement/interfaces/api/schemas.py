@@ -20,13 +20,6 @@ class ParsedDataOut(BaseModel):
     confidence: float
 
 
-class ResolvedDataOut(BaseModel):
-    sku: str
-    supplier_id: str
-    unit_price: str
-    currency: str
-
-
 class SubmitCatalogSelectionIn(BaseModel):
     requester_id: str
     cost_center_id: str
