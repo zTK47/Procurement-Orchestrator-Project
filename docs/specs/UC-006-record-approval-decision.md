@@ -1,42 +1,32 @@
 # UC-006 — Record Approval Decision
 
-**Use case:** `RecordApprovalDecisionUseCase`
-
 ## Intent
-Not part of the original prompt's 4 use cases, but required to actually
-complete the workflow the brainstorm's state diagram describes
-(`PENDING_APPROVAL -> APPROVED -> ORDER_SENT -> ...`). Records one
-approver's decision at one level, and — once every required level is
-approved — performs the final, authoritative budget check and deducts the
-cost center's budget.
+Record one approver's decision; when every required level has approved, spend the budget.
 
-## Acceptance Criteria
+## Actors
+Manager, Budget Owner.
 
-- **Given** a user without the role matching the approval level
-  **When** they attempt to record a decision
-  **Then** `UnauthorizedApproverError` is raised.
+## Preconditions
+Request is `PENDING_APPROVAL` with its required levels set.
 
-- **Given** an approver who already recorded a decision at this level for
-  this request
-  **When** they attempt to record another one
-  **Then** `DuplicateApprovalError` is raised.
+## Flow
+1. Check that the approver's role matches the level and has not decided this level yet.
+2. Save the `Approval`. A rejection moves the request to `REJECTED`.
+3. If levels are still missing, stay `PENDING_APPROVAL`.
+4. If all approved: re-check the budget, deduct it, move to `APPROVED`.
 
-- **Given** a request requiring both `MANAGER` and `BUDGET_OWNER` approval,
-  with only `MANAGER` approved so far
-  **When** the manager's approval is recorded
-  **Then** the request stays `PENDING_APPROVAL`.
+## Errors
+- Wrong role → `UnauthorizedApproverError`.
+- Same approver, same level, twice → `DuplicateApprovalError`.
+- Budget consumed meanwhile → `BudgetExceededError`, request stays `PENDING_APPROVAL`.
 
-- **Given** all required levels are now `APPROVED` and the cost center still
-  has enough budget
-  **When** the last approval is recorded
-  **Then** the cost center's `budget_spent` is increased by the request's
-  amount and the request moves to `APPROVED`.
+## Acceptance
+- Given all required levels approve and budget remains, then `APPROVED` and `budget_spent` grows by the amount.
+- Given any rejection, then `REJECTED` (terminal).
 
-- **Given** all required levels are approved but the cost center's budget
-  has since been consumed elsewhere
-  **When** the last approval is recorded
-  **Then** `BudgetExceededError` is raised (request stays `PENDING_APPROVAL`).
-
-- **Given** any approver rejects at their level
-  **When** the decision is recorded
-  **Then** the whole request moves to `REJECTED` (terminal).
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/application/test_record_approval_decision_use_case.py` |
+| Integration | `tests/integration/test_approval_repository.py` |
+| E2E | `tests/e2e/test_catalog_selection_and_errors_e2e.py` |

@@ -1,32 +1,27 @@
 # UC-005 — Submit Catalog Selection
 
-**Use case:** `SubmitCatalogSelectionUseCase`
-
 ## Intent
-Covers the "Catalog" intake mode (as opposed to "Free text", UC-001+UC-002):
-the requester already knows exactly which `CatalogItem` (by SKU) and
-quantity they want, so there is no NLP parsing or sourcing/ranking — only an
-availability check.
+Second intake mode: the requester picks a SKU and quantity directly, so no parsing or ranking is needed. (OCI Punchout, the third mode, is out of scope — ADR-005.)
 
-("OCI Punchout", the third originally-discussed intake mode, is out of
-scope for this prototype — see docs/PROJECT.md, Future Work.)
+## Actors
+Requester.
 
-## Acceptance Criteria
+## Preconditions
+A new `ProcurementRequest` in `CREATED`.
 
-- **Given** a valid SKU from an approved supplier with enough stock
-  **When** submitting the selection
-  **Then** the request moves directly to `RESOLVED` (via a synthetic,
-  confidence=1.0 `ParsedRequest`), with the correct `amount` and
-  `stock_check = "PASSED"`.
+## Flow
+1. Look up the SKU; check supplier approval and stock.
+2. Record a synthetic `ParsedRequest` (confidence 1.0), then resolve with `unit price × quantity`.
 
-- **Given** an unknown SKU
-  **When** submitting the selection
-  **Then** `SelectedItemUnavailableError` is raised.
+## Errors
+- Unknown SKU, unapproved supplier or insufficient stock → `SelectedItemUnavailableError`.
 
-- **Given** a SKU whose supplier is not approved
-  **When** submitting the selection
-  **Then** `SelectedItemUnavailableError` is raised.
+## Acceptance
+- Given a valid SKU and enough stock, then status is `RESOLVED` with the correct total and `stock_check = PASSED`.
+- Given any error case above, then no request state is stored.
 
-- **Given** a SKU with insufficient stock for the requested quantity
-  **When** submitting the selection
-  **Then** `SelectedItemUnavailableError` is raised.
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/application/test_submit_catalog_selection_use_case.py` |
+| E2E | `tests/e2e/test_catalog_selection_and_errors_e2e.py` |

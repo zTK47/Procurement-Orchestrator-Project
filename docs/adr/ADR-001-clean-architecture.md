@@ -1,21 +1,19 @@
-# ADR-001: Adopt Clean Architecture (Domain/Application/Interfaces/Infrastructure)
+# ADR-001: Clean Architecture with four layers
 
-**Status:** Accepted (24.09.2026)
+## Status
+Proposed (2026-09-28). Acceptance: pending team review — record name, date and review reference here.
 
 ## Context
-The course requires an enterprise-grade architecture separating business
-logic from framework code, and a testable domain model.
+The module requires enterprise-grade architecture, separation of business logic from framework code, and a domain that can be tested without infrastructure.
+
+## Alternatives
+- Simple three-layer architecture (presentation / business / data): less structure, but business rules tend to depend on the ORM and are harder to test in isolation.
+- Framework-centric FastAPI app (logic in routes and models): fastest to write, no isolation.
 
 ## Decision
-Adopt Clean Architecture with 4 layers. Dependency Rule: dependencies point
-only inward (`infrastructure -> interfaces -> application -> domain`).
-`domain/` has zero third-party imports.
+`domain ← application ← interfaces ← infrastructure`. `domain/` and `application/` import no third-party framework.
 
 ## Consequences
-- Domain and Application layers can be fully unit-tested without a database
-  or web framework (see 44 passing unit tests with zero DB dependency).
-- Swapping the in-memory repositories for SQLAlchemy-backed ones (Phase 4)
-  requires no change to domain/application code.
-- Slightly more boilerplate (explicit ports/ABCs) than a simple layered
-  script — accepted as the cost of testability and the course's explicit
-  grading criteria.
+- Unit tests for domain and application need no database or web framework.
+- Persistence or LLM/ERP providers change in `infrastructure/` only.
+- More files and ports than a flat app.

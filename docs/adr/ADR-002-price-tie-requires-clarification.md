@@ -1,36 +1,20 @@
-# ADR-002: Price ties in the Sourcing Funnel require human clarification
+# ADR-002: A price tie in the Sourcing Funnel needs human clarification
 
-**Status:** Accepted (27.09.2026)
+## Status
+Proposed (2026-09-28). Acceptance: pending team review.
 
 ## Context
-The original whiteboard brainstorm suggested resolving a price tie
-automatically: `return min(matching_items, key=lambda x: x.unit_price)`.
-During implementation we chose the opposite: raise
-`RequiresClarificationError` and stop, requiring a human to pick.
+The whiteboard suggested `min(matching_items, key=unit_price)`. On equal prices `min()` silently returns the first item, so the choice would depend on list order and leave no trace.
+
+## Alternatives
+- `min()` by price: simple, but arbitrary and unauditable on ties.
+- Configurable company procurement strategy (preferred supplier, shortest lead time): the whiteboard's open question; more realistic, more scope.
+- Raise an error and ask a human.
 
 ## Decision
-When two or more `CatalogItem`s tie for the lowest price after filtering,
-the `SourcingRule` domain service raises `RequiresClarificationError`
-instead of picking one arbitrarily (e.g. by insertion order, which is what
-`min()` would silently do on a tie).
-
-## Rationale
-- An arbitrary automatic pick on a tie is a real business risk in
-  procurement (e.g. picking a lower-quality supplier by accident because it
-  happened to appear first in a list) — silent and unauditable.
-- Raising a clear domain error keeps the decision auditable and gives a
-  human (or a future "tie-breaker" business rule) an explicit point to
-  intervene, rather than hiding it inside `min()`'s ordering behavior.
-- This is exactly the kind of deliberate deviation from an initial
-  brainstorm that the AI-SDLC process (Design phase, Architecture Gates) is
-  meant to surface and document, rather than silently overriding.
+`SourcingRule.resolve` raises `RequiresClarificationError` when two or more items tie for the lowest price. The API answers 422.
 
 ## Consequences
-- The pipeline stops and surfaces a 422 error via the API when a tie
-  occurs, instead of silently completing.
-- This is a deliberate deviation from the original brainstorm and is
-  presented explicitly in the capstone presentation as an architecture
-  decision worth discussing (see `docs/LEARNINGS.md`).
-- If the team later decides differently, `SourcingRule.resolve` should fall
-  back to `min(candidates, key=...)` instead of raising on ties -- this ADR
-  should then be superseded, not silently edited.
+- A tie stops the pipeline instead of guessing.
+- A configurable strategy remains possible later without changing this rule's callers.
+- If the team prefers `min()`, this ADR is superseded, not edited.

@@ -17,6 +17,7 @@ from procurement.domain.entities import (
 from procurement.domain.exceptions import (
     BudgetExceededError,
     DuplicateApprovalError,
+    IllegalStatusTransitionError,
     UnauthorizedApproverError,
 )
 from procurement.domain.value_objects import SKU, Money, ParsedRequest
@@ -126,3 +127,20 @@ def test_final_approval_raises_if_budget_no_longer_sufficient():
 
     with pytest.raises(BudgetExceededError):
         use_case.execute(request, "U-MAN", ApprovalLevel.MANAGER, ApprovalDecision.APPROVED)
+
+
+def test_decision_on_a_request_that_is_not_pending_is_rejected_and_not_stored():
+    manager = User(id="U-MAN", name="Bob", email="bob@x.com", role=UserRole.MANAGER)
+    approvals = InMemoryApprovalRepository()
+    use_case = RecordApprovalDecisionUseCase(
+        procurement_repository=InMemoryProcurementRequestRepository(),
+        approval_repository=approvals,
+        cost_center_repository=InMemoryCostCenterRepository([default_cost_center()]),
+        user_repository=InMemoryUserRepository([manager]),
+    )
+    request = validated_request("500", [])  # auto-approved, no longer pending
+
+    with pytest.raises(IllegalStatusTransitionError):
+        use_case.execute(request, "U-MAN", ApprovalLevel.MANAGER, ApprovalDecision.APPROVED)
+
+    assert approvals.list_for_request(request.id) == []

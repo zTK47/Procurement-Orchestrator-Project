@@ -1,24 +1,12 @@
 ---
 name: ai-sdlc-1-specify
-description: Write the acceptance criteria for a use case before any code is written.
+description: Write one use-case specification with testable acceptance criteria before any code.
 ---
 
-# PHASE 1 — SPECIFY
+# 1 SPECIFY — What must the change do?
 
-## Goal
-Answer: "What must the change do?" Produce `docs/specs/UC-XXX-<name>.md`
-with Given/When/Then acceptance criteria, BEFORE any implementation.
-
-## Steps
-1. Identify the actor and the use case name (matches a class in
-   `application/use_cases/`).
-2. Write the intent in 1-2 sentences.
-3. Write Given/When/Then acceptance criteria covering: the happy path, and
-   every domain error the use case can raise.
-4. If the use case touches a business rule listed in `docs/PROJECT.md`
-   ("Business rules"), the spec must reference which rule.
-
-## Rules
-- No code changes in this phase.
-- A spec is not "done" until it covers both success and failure paths.
-- Update `docs/TASKS.md`: `PHASE: 1-SPECIFY`.
+1. Load `docs/TASKS.md`, `docs/PROJECT.md`.
+2. Write one `docs/specs/UC-NNN-name.md` from `docs/specs/UC-TEMPLATE.md`: Intent, Actors, Preconditions, Flow, Errors, Acceptance, Tests.
+3. Cover the normal flow and every domain error the use case can raise. State IN/OUT scope.
+4. Map each acceptance criterion to a unit, integration or e2e test intent.
+5. No implementation. Record `PHASE: 1` and the active UC in `docs/TASKS.md`.

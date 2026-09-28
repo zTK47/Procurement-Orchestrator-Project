@@ -41,6 +41,7 @@ def _to_domain(model: ProcurementRequestModel) -> ProcurementRequest:
     if model.amount is not None:
         request.amount = Money(Decimal(str(model.amount)), model.currency or "CHF")
     request.stock_check = model.stock_check
+    request.erp_reference = model.erp_reference
     request.budget_check = model.budget_check
     request.required_approval_levels = [
         ApprovalLevel(lvl) for lvl in (model.required_approval_levels or "").split(",") if lvl
@@ -67,6 +68,7 @@ def _apply_to_model(request: ProcurementRequest, model: ProcurementRequestModel)
         model.amount = request.amount.amount
         model.currency = request.amount.currency
     model.stock_check = request.stock_check
+    model.erp_reference = request.erp_reference
     model.budget_check = request.budget_check
     model.required_approval_levels = ",".join(lvl.value for lvl in request.required_approval_levels)
     model.history = ",".join(s.value for s in request.history)

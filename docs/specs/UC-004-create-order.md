@@ -1,31 +1,29 @@
 # UC-004 — Create Order
 
-**Use case:** `CreateOrderUseCase`
-**Domain service:** `ApprovalRoutingPolicy`
-
 ## Intent
-Given a `VALIDATED` request, decide how many levels of human approval it
-needs (based on amount thresholds) and transition it accordingly.
+Decide which human approvals an order needs from its amount, and move it on.
 
-## Approval Routing Policy (rule 1)
-- amount ≤ manager_threshold (default 1000) → no approval needed.
-- manager_threshold < amount ≤ budget_owner_threshold (default 10000) →
-  `MANAGER` approval required.
-- amount > budget_owner_threshold → `MANAGER` **and** `BUDGET_OWNER`
-  approval required.
+## Actors
+System, after UC-003.
 
-## Acceptance Criteria
+## Preconditions
+Request is `VALIDATED`.
 
-- **Given** a validated request with amount ≤ manager_threshold
-  **When** creating the order
-  **Then** the request moves straight to `APPROVED`, no approvals required.
+## Flow
+1. `ApprovalRoutingPolicy` returns the required levels (thresholds 1000 / 10000).
+2. No level → `APPROVED`; otherwise → `PENDING_APPROVAL`.
 
-- **Given** a validated request with amount above manager_threshold but at
-  or below budget_owner_threshold
-  **When** creating the order
-  **Then** the request moves to `PENDING_APPROVAL` with
-  `required_approval_levels = [MANAGER]`.
+## Errors
+- Request has no amount → `ValueError`.
+- Request not `VALIDATED` → `IllegalStatusTransitionError`.
 
-- **Given** a validated request with amount above budget_owner_threshold
-  **When** creating the order
-  **Then** `required_approval_levels = [MANAGER, BUDGET_OWNER]`.
+## Acceptance
+- Given amount ≤ 1000, then the request is `APPROVED` without approvals.
+- Given 1000 < amount ≤ 10000, then `PENDING_APPROVAL` with `MANAGER`.
+- Given amount > 10000, then `MANAGER` and `BUDGET_OWNER` are required.
+
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/domain/test_approval_routing_policy.py`, `tests/unit/application/test_create_order_use_case.py` |
+| E2E | `tests/e2e/test_free_text_pipeline_e2e.py` |

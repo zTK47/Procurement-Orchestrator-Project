@@ -1,25 +1,14 @@
 ---
 name: ai-sdlc-2-design
-description: Decide where behavior belongs (which layer, which entity/service) and record consequential decisions as ADRs.
+description: Decide where behavior belongs and record consequential architecture decisions as ADRs.
 ---
 
-# PHASE 2 — DESIGN
+# 2 DESIGN — Where does behavior belong?
 
-## Goal
-Answer: "Where does behavior belong?" Decide which layer/entity/service
-owns each rule from the spec, before writing tests or code.
-
-## Steps
-1. For each acceptance criterion in the spec, identify: does this belong in
-   `domain/` (a business rule/invariant), `application/` (orchestration of
-   a use case), `interfaces/` (request/response shaping), or
-   `infrastructure/` (a technical detail)?
-2. If the decision is consequential (affects multiple use cases, changes an
-   existing contract, or deviates from an earlier plan/brainstorm), write an
-   ADR in `docs/adr/` with `Status: Proposed`.
-3. Do NOT mark an ADR `Accepted` yourself — that requires an explicit human
-   team decision (see AGENTS.md "Architecture Gates").
-
-## Rules
-- Domain rules never leak into `interfaces/` or `infrastructure/`.
-- Update `docs/TASKS.md`: `PHASE: 2-DESIGN`.
+1. Read the active UC and `docs/PROJECT.md`.
+2. Place each rule in `domain/`, `application/`, `interfaces/` or `infrastructure/`; define ports and adapters.
+3. Slice the work into small vertical tasks in `docs/TASKS.md`; list the tests needed per boundary.
+4. Only for a consequential choice, create `docs/adr/ADR-NNN-short-title.md` with: Status, Context, Alternatives, Decision, Consequences. Status starts as **Proposed**.
+5. An ADR becomes Accepted only when a named team member accepts it, with a review reference. An agent proposal is not approval.
+6. Reflect accepted decisions in `docs/PROJECT.md` and, if they become durable rules, in `AGENTS.md` (human review).
+7. No code and no tests in this phase. Record `PHASE: 2`.

@@ -1,24 +1,20 @@
-# ADR-004: LLM parsing stays behind a mockable port, never called from domain/application
+# ADR-004: LLM parsing sits behind a mockable port
 
-**Status:** Accepted (24.09.2026)
+## Status
+Proposed (2026-09-28). Acceptance: pending team review.
 
 ## Context
-Free-text intake (UC-001) needs to extract structured data from natural
-language. A real LLM call is slow, non-deterministic, costs money/quota,
-and requires network + an API key.
+Free-text parsing is non-deterministic, needs network and an API key, and costs money. The business rules must stay testable and auditable.
+
+## Alternatives
+- Call an LLM directly from the use case: realistic, but tests become flaky and slow.
+- Build the whole app around an autonomous agent: out of scope for a testable domain and for the timeline.
+- Port plus deterministic mock now, real adapter later.
 
 ## Decision
-`ParseRequestUseCase` depends only on the abstract `LLMAdapter` port. For
-this prototype, `MockLLMAdapter` (infrastructure layer) implements it with a
-deterministic, regex-based heuristic — no network calls. A real
-LiteLLM-backed adapter can be substituted later without touching
-domain/application code or existing tests.
+`ParseRequestUseCase` depends on `LLMAdapter`. `MockLLMAdapter` is a regex heuristic. A LiteLLM adapter can replace it in `get_llm_adapter`.
 
 ## Consequences
-- All 44 unit tests run in milliseconds, deterministically, without an API
-  key, in any environment (including one with no network access — this
-  was verified directly while building this prototype).
-- The "AI" in "AI-Assisted Procurement" is deliberately kept at the edge of
-  the system (an adapter), not the core — the tested, auditable business
-  rules (Sourcing Funnel, approval routing, budget checks) are pure Python
-  and do not depend on any LLM's output being correct.
+- Tests are fast and reproducible offline.
+- The "AI" is at the edge; core rules are plain Python.
+- The mock is not a real language model — say so in the presentation.

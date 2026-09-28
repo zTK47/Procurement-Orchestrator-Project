@@ -1,30 +1,14 @@
 ---
 name: ai-sdlc-3-develop
-description: Implement the current use case using strict Red-Green-Refactor TDD.
+description: Implement the active use case test-first (Red, Green, Refactor).
 ---
 
-# PHASE 3 — DEVELOP
+# 3 DEVELOP — Does the implementation satisfy the tests?
 
-## Order
-1. Domain unit tests -> domain implementation (entities, value objects,
-   domain services). No third-party imports allowed here.
-2. Application unit tests (using `InMemory*` fakes for repositories/adapters)
-   -> use case implementation.
-3. Only once 1-2 are green: interfaces (Pydantic schemas, FastAPI router)
-   and infrastructure (repository/adapter implementations) wiring.
+1. Write or extend integration tests for boundary behavior (repositories, API).
+2. Write or extend unit tests for domain rules and use-case logic. Run them: they must fail for the right reason (Red).
+3. Implement the smallest change that passes (Green). Commit tests and code so the red → green step is visible in history.
+4. Refactor with the suite green.
+5. Extend existing tests and files before creating new ones. Run the relevant tests after each step.
 
-## TDD Loop
-RED -> GREEN -> REFACTOR, one acceptance criterion at a time:
-1. Write ONE failing test matching one Given/When/Then from the spec.
-2. Write the minimal code to make it pass. Do not add behavior the test
-   does not require.
-3. Refactor (naming, duplication) with the test suite green throughout.
-4. Repeat for the next criterion.
-
-## Rules
-- Tests before code, always.
-- Respect the Dependency Rule (see docs/PROJECT.md).
-- If a requirement is unclear or contradicts an existing ADR/spec, stop and
-  ask rather than guessing.
-- Update `docs/TASKS.md`: `PHASE: 3-DEVELOP`, `STATUS: in-progress` while
-  working, `done` only once the full test suite for this use case passes.
+Rules: tests before code; keep `domain/` and `application/` free of FastAPI, Pydantic, SQLAlchemy; LLM and ERP only through ports; if a requirement is unclear, ask. Record `PHASE: 3`; `done` only when the UC's tests pass.

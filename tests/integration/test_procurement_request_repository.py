@@ -60,3 +60,21 @@ def test_save_updates_an_existing_row_rather_than_duplicating(db_session):
 
     reloaded = repository.get_by_id("PR-INTEGRATION-2")
     assert reloaded.parsed_data.product_name == "Pen"
+
+
+def test_erp_reference_survives_a_round_trip(db_session):
+    _make_user_and_cost_center(db_session)
+    repository = SqlAlchemyProcurementRequestRepository(db_session)
+
+    request = ProcurementRequest(id="PR-INTEGRATION-3", requester_id="U-1", cost_center_id="CC-1")
+    request.mark_parsed(ParsedRequest(1, "Pen", "Pen", 0.9))
+    request.mark_resolved(SKU("PEN-1"), "SUP-001", Money(Decimal("2.00"), "CHF"))
+    request.mark_validated()
+    request.submit_for_approval([])
+    request.mark_order_sent("PO-TEST-1")
+    repository.save(request)
+
+    reloaded = repository.get_by_id("PR-INTEGRATION-3")
+
+    assert reloaded.erp_reference == "PO-TEST-1"
+    assert reloaded.status == request.status

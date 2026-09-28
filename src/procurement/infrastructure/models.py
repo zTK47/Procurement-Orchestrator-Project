@@ -86,6 +86,7 @@ class ProcurementRequestModel(Base):
     # Comma-separated for simplicity in this prototype (e.g. "MANAGER,BUDGET_OWNER").
     required_approval_levels: Mapped[str | None] = mapped_column(String, nullable=True)
     history: Mapped[str | None] = mapped_column(String, nullable=True)
+    erp_reference: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class ApprovalModel(Base):

@@ -16,6 +16,7 @@ import os
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from procurement.application.ports.erp_gateway import ErpGateway
 from procurement.application.ports.llm_adapter import LLMAdapter
 from procurement.application.ports.repositories import (
     ApprovalRepository,
@@ -26,6 +27,7 @@ from procurement.application.ports.repositories import (
     UserRepository,
 )
 from procurement.infrastructure.db import get_db_session
+from procurement.infrastructure.mock_erp_gateway import MockErpGateway
 from procurement.infrastructure.mock_llm_adapter import MockLLMAdapter
 from procurement.infrastructure.repositories.sqlalchemy_approval_repository import (
     SqlAlchemyApprovalRepository,
@@ -89,3 +91,11 @@ def get_llm_adapter() -> LLMAdapter:
             "Real LLM adapter not yet implemented -- see docs/TASKS.md backlog."
         )
     return MockLLMAdapter()
+
+
+_erp_gateway = MockErpGateway()
+
+
+def get_erp_gateway() -> ErpGateway:
+    """Mock ERP by default; a SAP-backed adapter would be returned here."""
+    return _erp_gateway

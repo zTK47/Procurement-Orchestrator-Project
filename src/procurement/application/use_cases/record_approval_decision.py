@@ -15,11 +15,13 @@ from procurement.domain.entities import (
     ApprovalDecision,
     ApprovalLevel,
     ProcurementRequest,
+    ProcurementStatus,
     UserRole,
 )
 from procurement.domain.exceptions import (
     BudgetExceededError,
     DuplicateApprovalError,
+    IllegalStatusTransitionError,
     UnauthorizedApproverError,
 )
 
@@ -50,6 +52,11 @@ class RecordApprovalDecisionUseCase:
         level: ApprovalLevel,
         decision: ApprovalDecision,
     ) -> ProcurementRequest:
+        if request.status != ProcurementStatus.PENDING_APPROVAL:
+            raise IllegalStatusTransitionError(
+                f"Request {request.id} is {request.status.value}, not PENDING_APPROVAL."
+            )
+
         approver = self._user_repository.get_by_id(approver_id)
         if approver is None or approver.role != _ROLE_FOR_LEVEL[level]:
             raise UnauthorizedApproverError(

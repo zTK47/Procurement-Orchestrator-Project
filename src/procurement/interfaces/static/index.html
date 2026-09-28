@@ -53,7 +53,14 @@
   <button onclick="callStep('create-order')">Create Order</button>
 </fieldset>
 
-<h2>3. Record an approval decision</h2>
+<h2>4. After approval: ERP hand-off</h2>
+<fieldset>
+  <button onclick="callStep('send-order')">Send order to ERP</button>
+  <button onclick="callStep('goods-receipt')">Record goods receipt</button>
+  <button onclick="callStep('complete')">Complete</button>
+</fieldset>
+
+<h2>3. Record an approval decision (only when approval is required)</h2>
 <fieldset>
   <div class="row">
     <div>
@@ -89,8 +96,8 @@ let currentRequestId = null;
 
 function show(data) {
   document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-  if (data.request_id) {
-    currentRequestId = data.request_id;
+  if (data.requestId) {
+    currentRequestId = data.requestId;
     document.getElementById('current-id').textContent = currentRequestId;
   }
 }
@@ -111,9 +118,9 @@ function createFromText() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      requester_id: document.getElementById('requester-id-text').value,
-      cost_center_id: document.getElementById('cost-center-id-text').value,
-      raw_text: document.getElementById('raw-text').value,
+      requesterId: document.getElementById('requester-id-text').value,
+      costCenterId: document.getElementById('cost-center-id-text').value,
+      rawText: document.getElementById('raw-text').value,
     }),
   }));
 }
@@ -123,8 +130,8 @@ function createFromCatalog() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      requester_id: document.getElementById('requester-id-catalog').value,
-      cost_center_id: document.getElementById('cost-center-id-catalog').value,
+      requesterId: document.getElementById('requester-id-catalog').value,
+      costCenterId: document.getElementById('cost-center-id-catalog').value,
       sku: document.getElementById('sku').value,
       quantity: parseInt(document.getElementById('quantity').value, 10),
     }),
@@ -142,7 +149,7 @@ function recordApproval() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      approver_id: document.getElementById('approver-id').value,
+      approverId: document.getElementById('approver-id').value,
       level: document.getElementById('approval-level').value,
       decision: document.getElementById('approval-decision').value,
     }),

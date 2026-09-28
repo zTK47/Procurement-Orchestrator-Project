@@ -1,39 +1,34 @@
 # UC-002 — Resolve Item (Sourcing Funnel)
 
-**Use case:** `ResolveItemUseCase`
-**Domain service:** `SourcingRule`
-
 ## Intent
-Given a `ParsedRequest`, find the single best `CatalogItem` to fulfil it.
+Find the single best `CatalogItem` for a parsed request.
 
-## The Sourcing Funnel
-1. Filter to items in the same category, from an **approved** supplier.
-2. Filter out items with insufficient stock or a lead time above the
-   allowed maximum (default: 14 days).
-3. Rank the remainder by unit price, ascending.
-4. If exactly one item is cheapest → resolve to it.
-5. If two or more items tie on price → raise `RequiresClarificationError`
-   (human decision required — see ADR-002).
-6. If nothing survives the filters → raise `NoMatchingCatalogItemError`.
+## Actors
+System, after UC-001.
 
-## Acceptance Criteria
+## Preconditions
+Request is `PARSED`.
 
-- **Given** two approved-supplier items in the requested category, one
-  cheaper than the other, both with enough stock
-  **When** resolving
-  **Then** the cheaper item is selected, `stock_check = "PASSED"`, and the
-  request moves to `RESOLVED` with `amount = unit_price * quantity`.
+## Flow
+1. Keep items of the same category from an **approved** supplier.
+2. Drop items with too little stock or a lead time above 14 days.
+3. Rank by unit price; the cheapest wins.
+4. Store SKU, supplier, total amount (`unit price × quantity`), `stock_check = PASSED`; status `RESOLVED`.
 
-- **Given** the cheapest matching item is from an unapproved supplier
-  **When** resolving
-  **Then** it is excluded and the next cheapest approved item is selected.
+## Errors
+- Nothing survives the filters → `NoMatchingCatalogItemError`.
+- Two or more items tie for the lowest price → `RequiresClarificationError` (ADR-002).
+- Request not parsed → `ValueError`.
 
-- **Given** two approved items tie exactly on price
-  **When** resolving
-  **Then** `RequiresClarificationError` is raised and the request status
-  does not change.
+## Acceptance
+- Given two approved items, when resolving, then the cheaper one is chosen.
+- Given the cheapest item is from an unapproved supplier, then it is ignored.
+- Given insufficient stock or a lead time above 14 days, then the item is ignored.
+- Given a price tie, then resolution fails and the status stays `PARSED`.
 
-- **Given** no item in the category has an approved supplier with enough
-  stock and an acceptable lead time
-  **When** resolving
-  **Then** `NoMatchingCatalogItemError` is raised.
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/domain/test_sourcing_rules.py`, `tests/unit/application/test_resolve_item_use_case.py` |
+| Integration | `tests/integration/test_catalog_and_supplier_repositories.py` |
+| E2E | `tests/e2e/test_free_text_pipeline_e2e.py` |

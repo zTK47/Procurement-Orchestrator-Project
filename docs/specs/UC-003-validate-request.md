@@ -1,22 +1,29 @@
 # UC-003 — Validate Request
 
-**Use case:** `ValidateRequestUseCase`
-
 ## Intent
-Check that the resolved request's amount fits within its cost center's
-remaining budget. Scope is deliberately narrow (budget only) — approval
-routing is a separate concern, handled by UC-004 (`CreateOrderUseCase`).
+Check that the resolved amount fits the cost center's remaining budget. Approval routing is not part of this use case (UC-004).
 
-## Acceptance Criteria
+## Actors
+System, after UC-002 or UC-005.
 
-- **Given** a `RESOLVED` request whose amount is within the cost center's
-  available budget
-  **When** validating
-  **Then** the request moves to `VALIDATED`, `budget_check = "PASSED"`, and
-  `required_approval_levels` is left untouched (empty — not yet decided).
+## Preconditions
+Request is `RESOLVED`; its cost center exists.
 
-- **Given** a `RESOLVED` request whose amount exceeds the cost center's
-  available budget
-  **When** validating
-  **Then** `BudgetExceededError` is raised and the request status does not
-  change (stays `RESOLVED`).
+## Flow
+1. Compare the amount with `budget_total − budget_spent`.
+2. Set `budget_check = PASSED`, status `VALIDATED`; save.
+
+## Errors
+- Amount above the available budget → `BudgetExceededError`, status stays `RESOLVED`.
+- Request not resolved, or unknown cost center → `ValueError`.
+
+## Acceptance
+- Given enough budget, then status is `VALIDATED` and no approval level is decided yet.
+- Given too little budget, then validation fails and nothing changes.
+
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/application/test_validate_request_use_case.py` |
+| Integration | `tests/integration/test_cost_center_repository.py` |
+| E2E | `tests/e2e/test_free_text_pipeline_e2e.py` |

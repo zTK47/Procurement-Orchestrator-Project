@@ -1,105 +1,51 @@
-# Learnings — Presentation Notes
+# Learnings — notes for the presentation
 
-Raw material for the presentation's "Architecture decisions / Coding agent
-usage / Tool selection rationale / Testing & deployment strategy /
-Challenges and lessons learned" sections. Keep adding to this as you work
-through Phases 3-5 yourselves — the entries below cover the bootstrap
-(Phases 0-2 and the initial Phase 3 pass); your own hands-on coding-agent
-sessions from here on are the most valuable material to add.
+Keep adding to this while you work. Sections follow the presentation brief:
+architecture decisions, coding-agent use, tool selection, testing and deployment, challenges.
+Entries marked TODO need your own experience.
 
 ## Architecture decisions
 
-- **Clean Architecture with a verified Dependency Rule**: `domain/` has
-  zero third-party imports. This was checked concretely, not just claimed —
-  all 44 unit tests for domain + application run without FastAPI, Pydantic,
-  or SQLAlchemy installed at all (see ADR-001).
-- **UC-003/UC-004 split**: `ValidateRequestUseCase` was deliberately kept
-  budget-only, with a separate `CreateOrderUseCase` handling approval
-  routing — matching the original project brief's use-case naming while
-  keeping each use case single-responsibility and independently testable.
-- **ADR-002 (price-tie handling)**: this is a concrete example worth
-  walking through live in the presentation. The original whiteboard
-  brainstorm suggested `min(price)` on a tie; the implementation instead
-  raises `RequiresClarificationError`. This was explicitly flagged as a
-  `Proposed` ADR rather than silently implemented, discussed with the team,
-  and only then marked `Accepted` — a live demonstration of the "Architecture
-  Gates" mechanism from AGENTS.md actually being used, not just documented.
-- **RecordApprovalDecisionUseCase** was added beyond the original prompt's
-  4 use cases because the whiteboard's own workflow diagram
-  (PENDING_APPROVAL -> APPROVED -> ORDER_SENT -> ...) required it to be a
-  complete, working pipeline rather than stopping at PENDING_APPROVAL.
+- Clean Architecture with the dependency rule checked in practice: the domain and application unit tests run
+  with no FastAPI, Pydantic or SQLAlchemy installed (ADR-001).
+- Ports for persistence, LLM and ERP, adapters chosen in one file (ADR-003, ADR-004, ADR-006).
+- Price ties raise an error instead of `min()` picking silently (ADR-002) — a good example of a decision
+  where the whiteboard idea was changed on purpose and recorded with its alternatives.
+- Use cases kept single-purpose: validation (budget) is separate from order creation (approval routing).
+- All ADRs are Proposed. TODO: accept, change or reject each as a team and record who and when.
 
-## Coding agent usage
+## Coding agent use
 
-- **Autonomy level**: work was driven in a semi-autonomous loop — proposals
-  (architecture, file structure, code) were generated, then reviewed and
-  explicitly confirmed or corrected by the team before being treated as
-  final (e.g. the prompt/whiteboard reconciliation, and ADR-002). This
-  matches Lecture 1's "semi-autonomous: agent proposes, human decides"
-  level, deliberately chosen over a more autonomous mode for a graded
-  academic deliverable where every business-rule decision needs to be
-  attributable.
-- **Reflection pattern in practice**: several early architecture proposals
-  were revised after review surfaced concrete gaps — e.g. the first
-  AGENTS.md-driven plan omitted SKILL.md/progressive disclosure entirely
-  (Lecture 2 material); the first use-case implementation didn't match the
-  original prompt's naming/JSON contract (stockCheck/budgetCheck fields
-  were missing). Each gap was fed back explicitly and the next iteration
-  corrected it — the same "error message -> revised attempt" loop as the
-  Reflection design pattern (Lecture 1, slides 39-42), just applied to
-  requirement gaps instead of failing test output.
-- **Concrete example of a correction accepted**: initial `ValidateRequestUseCase`
-  bundled budget-checking AND approval-level routing into one method; this
-  was split into `ValidateRequestUseCase` + `CreateOrderUseCase` after
-  comparing against the project brief's exact use-case list.
-- **Concrete example of a bug caught by manual review, not testing** (fill
-  in your own examples here as you go): a code review pass (without being
-  able to execute the code in the dev sandbox) still caught a foreign-key
-  constraint violation waiting to happen in the Approval repository's
-  integration tests (parent User/ProcurementRequest rows were never
-  seeded) — a reminder that code review remains necessary even with a
-  green-looking implementation; TDD only catches what you actually run.
-- [TODO: once you run your own coding-agent sessions for Phases 3-5, add
-  1-2 concrete "good suggestion kept" / "suggestion rejected and why" pairs
-  here, plus which tool (Copilot vs. Claude Code/Codex CLI) produced each.]
+- Autonomy: semi-autonomous. The agent proposed structure and code; the team reviewed and corrected
+  (Lecture 1, levels of autonomy). TODO: state which tool you used for which phase.
+- Reflection in practice, concrete cases from this project:
+  - The first plan ignored `SKILL.md` and progressive disclosure; a review against Lecture 2 caught it.
+  - The first implementation did not match the agreed JSON contract (`stockCheck`, `nextState`, camelCase)
+    or the whiteboard's last workflow states; a comparison against the sketch caught it.
+  - Reading the professors' current template showed the ADR format needed an Alternatives section and that
+    ADRs must stay Proposed until a human accepts them; the agent had marked them Accepted itself.
+  - A static code review (no runtime available) found a foreign-key violation waiting in the approval
+    integration tests and a missing status check in `RecordApprovalDecisionUseCase`.
+- Honest limit: the scaffold's tests and code were generated together, so its history has no red step.
+  Later work should commit the failing test first. TODO: add one real red → green example from your own work.
+- TODO: one agent suggestion you kept and one you rejected, with the tool that produced each.
 
-## Tool selection rationale
+## Tool selection
 
-- FastAPI/SQLAlchemy/Neon/Render/Copilot — see `docs/PROJECT.md` tech stack
-  table for the one-line rationale per choice.
-- Chose comma-separated string columns for `required_approval_levels` and
-  `history` on `ProcurementRequestModel` (rather than a separate join
-  table) — a deliberate simplification appropriate for a 5-week prototype;
-  flagged here rather than presented as if it were the "correct" enterprise
-  design (a real system would likely use a separate audit-log table).
-- [TODO: any tool you evaluated and did NOT use, and why]
+Stack and reasons: `docs/PROJECT.md` (Dependencies) and the ADRs. The comma-separated columns for approval levels
+and history are a prototype shortcut; a real system would use an audit table.
+TODO: any tool you evaluated and dropped.
 
-## Testing & deployment strategy
+## Testing and deployment
 
-- Testing pyramid: unit (domain + application, mocked/in-memory repos, zero
-  DB dependency, **44/44 passing, verified**) → integration (real Postgres,
-  SAVEPOINT-isolated) → e2e (full FastAPI stack via `TestClient` +
-  `dependency_overrides`).
-- Integration/e2e tests were written to the same specs as the unit tests
-  but could not be executed in the development sandbox used to build them
-  (no network access to install FastAPI/SQLAlchemy/pytest there) — they
-  must be the very first thing run once you have a normal dev environment.
-  This is itself worth mentioning as a real constraint encountered during
-  the project, not hidden.
-- [TODO: once run, note pass/fail counts and any fixes needed]
-- [TODO: deployment verification — did the live Render URL actually work
-  end-to-end, not just "CI is green"?]
+- Pyramid: unit (no DB) → integration (Postgres, SAVEPOINT rollback) → e2e (`TestClient`, dependency overrides).
+- Verified so far: 64 unit tests and `demo.py`. Not verified: SQLAlchemy layer, integration and e2e tests, Docker,
+  CI, deployment. TODO: after the first CI run, note what failed and what you changed.
+- TODO: after deployment, record the smoke test on the live URL — a green CI run is not evidence of a deployment.
 
 ## Challenges and lessons learned
 
-- Reconciling three different sources of truth (a course-provided lecture
-  framework, a teammate's own LLM-generated implementation prompt, and a
-  whiteboard brainstorm) required an explicit mapping step before writing
-  any code — e.g. the whiteboard's `ProcurementRequest`/`CatalogItem`
-  naming had to be reconciled with generic `Department`/`PurchaseRequest`
-  naming from an earlier planning pass. Skipping this and just picking one
-  source would have produced an internally inconsistent project.
-- [TODO: be honest here — this is explicitly graded. What took longer than
-  expected once you started running real tests? What assumption in the
-  SQLAlchemy mapping turned out to be wrong? What would you do differently
-  with another 5 weeks?]
+- Three sources had to be reconciled (course template, teammate prompt, whiteboard) before writing code.
+- The development environment had no network access, so the most infrastructure-heavy code could only be reviewed,
+  not run — the top item in `docs/TASKS.md`.
+- TODO: what took longer than expected, what was wrong at first, what you would change with five more weeks.

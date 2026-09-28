@@ -1,25 +1,13 @@
 ---
 name: ai-sdlc-4-validate
-description: Run the full testing pyramid and CI checks before considering a phase done.
+description: Collect evidence that the use case is release-ready.
 ---
 
-# PHASE 4 — VALIDATE
+# 4 VALIDATE — What evidence supports readiness?
 
-## Testing Pyramid
-1. `pytest tests/unit` — domain + application, mocked/in-memory repos, no
-   DB, must run in under a few seconds.
-2. `pytest tests/integration` — concrete SQLAlchemy repositories against a
-   real Postgres (docker-compose or Neon), verifies persistence mapping.
-3. `pytest tests/e2e` — full FastAPI app via `httpx`, verifies the whole
-   pipeline through HTTP.
+1. `pytest tests/unit`, `pytest tests/integration` (Postgres via `docker compose up -d db`), `pytest tests/e2e`.
+2. `ruff check src tests`; `docker build -t procurement-orchestrator .` and run the container.
+3. GitHub Actions `ci.yml` green on the pull request; coverage as a heuristic (about 80%), not proof.
+4. Record commit, commands and real results in `docs/TASKS.md`; note known limitations.
 
-## CI Pipeline (`.github/workflows/ci.yml`)
-lint (ruff) -> unit tests -> integration tests (Postgres service container)
--> docker build.
-
-## Rules
-- "Done" means the phase's output was actually verified, not just that
-  code exists. A green CI run on an empty test file is not evidence of
-  anything.
-- Update `docs/TASKS.md`: `PHASE: 4-VALIDATE`, `STATUS: done` only once all
-  three test levels pass in CI.
+A failed gate goes back to DEVELOP or SPECIFY; it is never bypassed. A green structural check is not application evidence. Record `PHASE: 4`.

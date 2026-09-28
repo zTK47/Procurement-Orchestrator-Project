@@ -20,12 +20,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from procurement.application.contract import to_contract
+from procurement.application.use_cases.complete_request import CompleteRequestUseCase
 from procurement.application.use_cases.create_order import CreateOrderUseCase
 from procurement.application.use_cases.parse_request import ParseRequestUseCase
 from procurement.application.use_cases.record_approval_decision import (
     RecordApprovalDecisionUseCase,
 )
+from procurement.application.use_cases.record_goods_receipt import RecordGoodsReceiptUseCase
 from procurement.application.use_cases.resolve_item import ResolveItemUseCase
+from procurement.application.use_cases.send_order_to_erp import SendOrderToErpUseCase
 from procurement.application.use_cases.submit_catalog_selection import (
     SubmitCatalogSelectionUseCase,
 )
@@ -40,41 +44,12 @@ from procurement.infrastructure.in_memory_repositories import (
     InMemorySupplierRepository,
     InMemoryUserRepository,
 )
+from procurement.infrastructure.mock_erp_gateway import MockErpGateway
 from procurement.infrastructure.mock_llm_adapter import MockLLMAdapter
 from procurement.infrastructure.seed_data import build_seed_data
 
 
-def to_contract_json(request: ProcurementRequest) -> dict:
-    return {
-        "requestId": request.id,
-        "status": request.status.value,
-        "rawText": request.raw_text,
-        "parsedData": {
-            "quantity": request.parsed_data.quantity,
-            "productName": request.parsed_data.product_name,
-            "category": request.parsed_data.category,
-            "confidence": request.parsed_data.confidence,
-        } if request.parsed_data else None,
-        "resolvedData": {
-            "sku": request.resolved_sku.value,
-            "supplierId": request.resolved_supplier_id,
-            "unitPrice": str(request.amount.amount / request.parsed_data.quantity),
-            "currency": request.amount.currency,
-        } if request.resolved_sku and request.amount and request.parsed_data else None,
-        "validation": {
-            "budgetCheck": request.budget_check,
-            "stockCheck": request.stock_check,
-            "requiresApproval": bool(request.required_approval_levels),
-            "approvalLevels": [lvl.value for lvl in request.required_approval_levels],
-        },
-        "workflow": {
-            "currentState": request.status.value,
-            "history": [s.value for s in request.history],
-        },
-    }
-
-
-def run_free_text_pipeline(repos, llm_adapter) -> ProcurementRequest:
+def run_free_text_pipeline(repos, llm_adapter, erp_gateway) -> ProcurementRequest:
     (procurement_repository, catalog_repository, supplier_repository,
      cost_center_repository, user_repository, approval_repository) = repos
 
@@ -104,8 +79,15 @@ def run_free_text_pipeline(repos, llm_adapter) -> ProcurementRequest:
         ).execute(request, approver_id, level, ApprovalDecision.APPROVED)
         print(f"[5] Approval  -> {level.value} approved, status={request.status.value}")
 
+    request = SendOrderToErpUseCase(erp_gateway, procurement_repository).execute(request)
+    print(f"[6] ERP       -> status={request.status.value}, erp_reference={request.erp_reference}")
+    request = RecordGoodsReceiptUseCase(erp_gateway, procurement_repository).execute(request)
+    print(f"[7] Goods     -> status={request.status.value}")
+    request = CompleteRequestUseCase(procurement_repository).execute(request)
+    print(f"[8] Completed -> status={request.status.value}")
+
     print("\nFinal JSON contract:")
-    print(json.dumps(to_contract_json(request), indent=2))
+    print(json.dumps(to_contract(request), indent=2))
     return request
 
 
@@ -139,7 +121,7 @@ def main() -> None:
         InMemoryApprovalRepository(),
     )
 
-    run_free_text_pipeline(repos, MockLLMAdapter())
+    run_free_text_pipeline(repos, MockLLMAdapter(), MockErpGateway())
     run_catalog_selection_pipeline(repos)
 
     final_cost_center = repos[3].get_by_id("CC-IT")

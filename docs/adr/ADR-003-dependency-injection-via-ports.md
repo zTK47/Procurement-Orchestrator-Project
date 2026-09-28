@@ -1,23 +1,19 @@
-# ADR-003: Dependency Injection via abstract repository/adapter ports
+# ADR-003: Use cases depend on ports; adapters are injected
 
-**Status:** Accepted (24.09.2026)
+## Status
+Proposed (2026-09-28). Acceptance: pending team review.
 
 ## Context
-Use cases need to read/write data (procurement requests, catalog items,
-suppliers, cost centers, users, approvals) and call an LLM, but must not be
-coupled to a specific database or LLM provider (Dependency Inversion
-Principle, covered in Lecture 2).
+Use cases need persistence and, later, LLM and ERP access without knowing the technology (Dependency Inversion, Lecture 2).
+
+## Alternatives
+- Use cases instantiate SQLAlchemy sessions or HTTP clients directly: hard to test, tightly coupled.
+- A DI container library: more machinery than this project needs.
+- Abstract base classes as ports plus FastAPI `Depends`.
 
 ## Decision
-Define abstract base classes (`application/ports/repositories.py`,
-`application/ports/llm_adapter.py`) that use cases depend on. Concrete
-implementations (`InMemory*Repository` today, `SQLAlchemy*Repository` from
-Phase 4 on; `MockLLMAdapter` today, a LiteLLM-backed adapter later) are
-instantiated and injected only in `infrastructure/main.py`.
+Ports live in `application/ports/`. `interfaces/api/dependencies.py` is the only place that picks concrete adapters. Unit tests use the in-memory repositories.
 
 ## Consequences
-- Use cases (e.g. `SubmitCatalogSelectionUseCase`) are tested with
-  `InMemory*` implementations acting as fast, deterministic fakes — no
-  mocking framework needed.
-- Switching persistence technology or LLM provider touches only
-  `infrastructure/` and one line in `main.py`'s wiring.
+- Swapping in-memory for SQLAlchemy, or mock for real LLM/ERP, touches one file.
+- Every new external dependency needs a port first.

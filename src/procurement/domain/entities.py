@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 
 from procurement.domain.exceptions import (
@@ -71,6 +72,28 @@ _ALLOWED_TRANSITIONS: dict[ProcurementStatus, set[ProcurementStatus]] = {
     ProcurementStatus.COMPLETED: set(),  # terminal
 }
 
+# Expected next status on the normal (happy) path, used to expose `nextState`.
+_HAPPY_PATH_NEXT: dict[ProcurementStatus, ProcurementStatus | None] = {
+    ProcurementStatus.CREATED: ProcurementStatus.PARSED,
+    ProcurementStatus.PARSED: ProcurementStatus.RESOLVED,
+    ProcurementStatus.RESOLVED: ProcurementStatus.VALIDATED,
+    ProcurementStatus.VALIDATED: ProcurementStatus.PENDING_APPROVAL,
+    ProcurementStatus.PENDING_APPROVAL: ProcurementStatus.APPROVED,
+    ProcurementStatus.APPROVED: ProcurementStatus.ORDER_SENT,
+    ProcurementStatus.ORDER_SENT: ProcurementStatus.GOODS_RECEIPT,
+    ProcurementStatus.GOODS_RECEIPT: ProcurementStatus.COMPLETED,
+    ProcurementStatus.REJECTED: None,
+    ProcurementStatus.COMPLETED: None,
+}
+
+# Statuses in which approval routing has not been decided yet.
+_BEFORE_APPROVAL_ROUTING = {
+    ProcurementStatus.CREATED,
+    ProcurementStatus.PARSED,
+    ProcurementStatus.RESOLVED,
+    ProcurementStatus.VALIDATED,
+}
+
 
 # --------------------------------------------------------------------------
 # Entities
@@ -98,14 +121,7 @@ class CostCenter:
         return self.available_budget() >= amount
 
     def spend(self, amount: Money) -> None:
-        """Deduct `amount` from the available budget.
-
-        Raises ValueError (via Money's own invariant) if this would make
-        budget_spent exceed budget_total in a way that produces a negative
-        remaining balance beyond what Money allows -- the actual "is there
-        enough budget" business check is BudgetExceededError, raised by the
-        use case *before* calling spend().
-        """
+        """Adds `amount` to budget_spent. Callers check has_available_budget first."""
         self.budget_spent = self.budget_spent + amount
 
 
@@ -140,11 +156,7 @@ class Approval:
 
 @dataclass
 class ProcurementRequest:
-    """Aggregate root of the Procurement domain.
-
-    Owns the workflow state machine: any status change must go through
-    `transition_to`, which enforces `_ALLOWED_TRANSITIONS`.
-    """
+    """Aggregate root. Every status change goes through `transition_to`."""
 
     id: str
     requester_id: str
@@ -154,9 +166,10 @@ class ProcurementRequest:
     resolved_sku: SKU | None = None
     resolved_supplier_id: str | None = None
     amount: Money | None = None
-    stock_check: str | None = None   # "PASSED" | "FAILED" -- set at resolution time
-    budget_check: str | None = None  # "PASSED" | "FAILED" -- set at validation time
+    stock_check: str | None = None
+    budget_check: str | None = None
     required_approval_levels: list[ApprovalLevel] = field(default_factory=list)
+    erp_reference: str | None = None
     status: ProcurementStatus = ProcurementStatus.CREATED
     history: list[ProcurementStatus] = field(
         default_factory=lambda: [ProcurementStatus.CREATED]
@@ -164,17 +177,41 @@ class ProcurementRequest:
 
     # -- state machine -----------------------------------------------------
 
-    def transition_to(self, new_status: ProcurementStatus) -> None:
-        allowed = _ALLOWED_TRANSITIONS.get(self.status, set())
-        if new_status not in allowed:
+    def assert_can_transition_to(self, new_status: ProcurementStatus) -> None:
+        if new_status not in _ALLOWED_TRANSITIONS.get(self.status, set()):
             raise IllegalStatusTransitionError(
                 f"Cannot transition ProcurementRequest {self.id} from "
                 f"{self.status.value} to {new_status.value}."
             )
+
+    def transition_to(self, new_status: ProcurementStatus) -> None:
+        self.assert_can_transition_to(new_status)
         self.status = new_status
         self.history.append(new_status)
 
-    # -- pipeline steps (each wraps a transition with the relevant data) ---
+    def next_state(self) -> ProcurementStatus | None:
+        return _HAPPY_PATH_NEXT.get(self.status)
+
+    # -- derived values ----------------------------------------------------
+
+    def unit_price(self) -> Money | None:
+        if self.amount is None or self.parsed_data is None:
+            return None
+        return Money(
+            (self.amount.amount / self.parsed_data.quantity).quantize(Decimal("0.01")),
+            self.amount.currency,
+        )
+
+    def requires_approval(self) -> bool | None:
+        """None until approval routing has been decided (see CreateOrderUseCase)."""
+        if self.status in _BEFORE_APPROVAL_ROUTING:
+            return None
+        return bool(self.required_approval_levels)
+
+    def highest_approval_level(self) -> ApprovalLevel | None:
+        return self.required_approval_levels[-1] if self.required_approval_levels else None
+
+    # -- pipeline steps ----------------------------------------------------
 
     def mark_parsed(self, parsed_data: ParsedRequest) -> None:
         self.parsed_data = parsed_data
@@ -190,15 +227,11 @@ class ProcurementRequest:
         self.transition_to(ProcurementStatus.RESOLVED)
 
     def mark_validated(self, budget_check: str = "PASSED") -> None:
-        """UC-003 (ValidateRequestUseCase): budget check only. Does NOT
-        decide approval routing -- that is CreateOrderUseCase's job (UC-004),
-        matching the separation of concerns requested in the project brief."""
+        """Budget check only; approval routing is decided in submit_for_approval."""
         self.budget_check = budget_check
         self.transition_to(ProcurementStatus.VALIDATED)
 
     def submit_for_approval(self, required_approval_levels: list[ApprovalLevel]) -> None:
-        """UC-004 (CreateOrderUseCase): determines whether human approval is
-        required and transitions accordingly."""
         self.required_approval_levels = required_approval_levels
         if required_approval_levels:
             self.transition_to(ProcurementStatus.PENDING_APPROVAL)
@@ -210,3 +243,14 @@ class ProcurementRequest:
 
     def reject(self) -> None:
         self.transition_to(ProcurementStatus.REJECTED)
+
+    def mark_order_sent(self, erp_reference: str) -> None:
+        self.assert_can_transition_to(ProcurementStatus.ORDER_SENT)
+        self.erp_reference = erp_reference
+        self.transition_to(ProcurementStatus.ORDER_SENT)
+
+    def mark_goods_received(self) -> None:
+        self.transition_to(ProcurementStatus.GOODS_RECEIPT)
+
+    def complete(self) -> None:
+        self.transition_to(ProcurementStatus.COMPLETED)

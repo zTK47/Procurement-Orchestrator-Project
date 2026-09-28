@@ -1,19 +1,13 @@
 ---
 name: ai-sdlc-5-deploy
-description: Containerize and deploy the release; verify it actually runs, not just that it built.
+description: Prepare and verify delivery of a validated artifact.
 ---
 
-# PHASE 5 — DEPLOY
+# 5 DEPLOY — Is delivery prepared or executed?
 
-## Steps
-1. `docker build -t procurement-orchestrator .`
-2. Push/connect the repo to Render as a Docker Web Service.
-3. Set `DATABASE_URL` to the Neon Postgres connection string.
-4. Deploy, then manually call `GET /health` and run through at least one
-   full pipeline scenario against the deployed URL.
+1. Deploy only a validated artifact. Agree the target (Render + Neon) with the team.
+2. Configure `.github/workflows/cd.yml` (inactive until repo variable `CD_ENABLED=true`), document secrets by name only, trigger, smoke check and rollback.
+3. Set `DATABASE_URL` on the target; never commit secret values.
+4. After an authorized run, call `GET /health` and one full pipeline scenario on the live URL.
 
-## Rules
-- A successfully built Docker image or a green CI workflow is NOT evidence
-  that the deployment actually works end-to-end. Verify manually.
-- Update `docs/TASKS.md`: `PHASE: 5-DEPLOY`, `STATUS: done` only after the
-  manual end-to-end check above has passed against the live URL.
+A verified workflow is not proof of a deployment: record the actual deployment and smoke-test result separately. Feedback goes back to SPECIFY. Record `PHASE: 5`.

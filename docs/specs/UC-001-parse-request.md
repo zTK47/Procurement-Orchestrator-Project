@@ -1,31 +1,28 @@
 # UC-001 — Parse Request
 
-**Actor:** Employee submitting a purchase need in free text.
-**Use case:** `ParseRequestUseCase`
-
 ## Intent
-Turn a free-text procurement need ("I need 5 new Lenovo Laptops for the IT
-department") into structured data (`ParsedRequest`: quantity, product name,
-category, confidence) that the rest of the pipeline can act on.
+Turn a free-text purchase need into structured data (`ParsedRequest`) so the pipeline can act on it.
+
+## Actors
+Requester (employee); `LLMAdapter` (system, mocked for now — ADR-004).
+
+## Preconditions
+A `ProcurementRequest` exists in `CREATED` with non-empty `raw_text`.
 
 ## Flow
-1. Requester submits raw text + their id + a cost center id.
-2. A new `ProcurementRequest` is created in status `CREATED`.
-3. The `LLMAdapter` port parses the raw text into a `ParsedRequest`.
-4. The request transitions to `PARSED` and is persisted.
+1. The adapter extracts quantity, product name, category and confidence.
+2. The request stores the result and moves to `PARSED`; it is saved.
 
-## Acceptance Criteria (Given/When/Then)
+## Errors
+- `raw_text` missing → `ValueError`, no state change.
+- Adapter output violates `ParsedRequest` invariants (quantity ≤ 0, confidence outside 0..1) → `ValueError`.
 
-- **Given** raw text is provided
-  **When** `ParseRequestUseCase.execute` runs
-  **Then** the request's status becomes `PARSED` and `parsed_data` is set.
+## Acceptance
+- Given raw text, when parsing runs, then status is `PARSED` and `parsed_data` is set.
+- Given no raw text, when parsing runs, then it fails and the status stays `CREATED`.
 
-- **Given** `raw_text` is empty or missing
-  **When** the use case runs
-  **Then** a `ValueError` is raised and no state changes.
-
-## Notes
-The `LLMAdapter` is mocked in the current prototype (`MockLLMAdapter`,
-deterministic, no network calls) — see ADR-004. Swapping to a real LLM
-provider via LiteLLM changes only the infrastructure implementation, never
-this use case.
+## Tests
+| Level | Test |
+|---|---|
+| Unit | `tests/unit/application/test_parse_request_use_case.py`, `tests/unit/infrastructure/test_mock_llm_adapter.py` |
+| E2E | `tests/e2e/test_free_text_pipeline_e2e.py` |

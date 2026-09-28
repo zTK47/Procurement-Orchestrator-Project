@@ -107,3 +107,62 @@ def test_rejected_request_is_terminal():
     assert request.status == ProcurementStatus.REJECTED
     with pytest.raises(IllegalStatusTransitionError):
         request.approve()
+
+
+def _approved_request() -> ProcurementRequest:
+    request = make_request()
+    request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000.00"), "CHF"))
+    request.mark_validated()
+    request.submit_for_approval([])
+    return request
+
+
+def test_next_state_follows_the_happy_path():
+    request = make_request()
+    assert request.next_state() == ProcurementStatus.PARSED
+    request.mark_parsed(ParsedRequest(1, "Pen", "Pen", 0.9))
+    assert request.next_state() == ProcurementStatus.RESOLVED
+
+
+def test_next_state_is_none_in_terminal_states():
+    request = _approved_request()
+    request.mark_order_sent("PO-1")
+    request.mark_goods_received()
+    request.complete()
+    assert request.next_state() is None
+
+
+def test_unit_price_is_amount_divided_by_quantity():
+    request = make_request()
+    assert request.unit_price() is None
+    request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000.00"), "CHF"))
+    assert request.unit_price() == Money(Decimal("1200.00"), "CHF")
+
+
+def test_requires_approval_is_unknown_until_routing_is_decided():
+    request = make_request()
+    request.mark_parsed(ParsedRequest(1, "Pen", "Pen", 0.9))
+    request.mark_resolved(SKU("PEN"), "SUP-001", Money(Decimal("2.00"), "CHF"))
+    request.mark_validated()
+    assert request.requires_approval() is None
+    request.submit_for_approval([ApprovalLevel.MANAGER, ApprovalLevel.BUDGET_OWNER])
+    assert request.requires_approval() is True
+    assert request.highest_approval_level() == ApprovalLevel.BUDGET_OWNER
+
+
+def test_order_flow_after_approval_reaches_completed():
+    request = _approved_request()
+    request.mark_order_sent("PO-1")
+    request.mark_goods_received()
+    request.complete()
+    assert request.status == ProcurementStatus.COMPLETED
+    assert request.erp_reference == "PO-1"
+
+
+def test_cannot_send_order_before_approval_and_reference_is_not_stored():
+    request = make_request()
+    with pytest.raises(IllegalStatusTransitionError):
+        request.mark_order_sent("PO-1")
+    assert request.erp_reference is None

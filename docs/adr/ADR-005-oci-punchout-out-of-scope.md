@@ -1,24 +1,18 @@
-# ADR-005: OCI Punchout catalog integration is out of scope for this prototype
+# ADR-005: OCI Punchout is out of scope
 
-**Status:** Accepted (24.09.2026)
+## Status
+Proposed (2026-09-28). Acceptance: pending team review.
 
 ## Context
-The original brainstorm listed three catalog intake types: Catalog, Free
-text, and OCI Punchout (a cXML-based hosted-catalog protocol used by
-systems like SAP Ariba).
+The whiteboard lists three intake types: Catalog, Free text, OCI Punchout. Punchout needs an external hosted-catalog session and cXML exchange.
+
+## Alternatives
+- Implement Punchout with a fake supplier: large effort, little architectural learning.
+- Implement two intake modes and document the third as future work.
 
 ## Decision
-Implement only "Catalog" (UC-005) and "Free text" (UC-001+UC-002) for this
-prototype. OCI Punchout is documented as Future Work and not implemented.
-
-## Rationale
-OCI Punchout requires an external hosted-catalog session, cXML
-authentication, and a callback flow — a substantial integration effort on
-its own, disproportionate to a 2-person, ~5-week course capstone. Building
-it partially or superficially would not demonstrate real Clean
-Architecture/TDD discipline and would risk the project's timeline.
+Only Catalog (UC-005) and Free text (UC-001/002) are implemented.
 
 ## Consequences
-- 2 of the 3 originally discussed intake modes are implemented and tested.
-- `docs/PROJECT.md` documents OCI Punchout as Future Work, showing
-  deliberate scoping rather than an oversight.
+- Two of three modes are complete and tested.
+- Punchout is listed in `docs/PROJECT.md` under Scope.
