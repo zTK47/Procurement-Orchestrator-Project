@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -58,6 +58,10 @@ class CatalogItemModel(Base):
     stock_qty: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     lead_time_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    # Declared so the unit of work flushes the parent row first when both are
+    # added in one session; a bare ForeignKey column does not order INSERTs.
+    supplier: Mapped[SupplierModel] = relationship()
+
 
 class ProcurementRequestModel(Base):
     __tablename__ = "procurement_requests"
@@ -88,6 +92,9 @@ class ProcurementRequestModel(Base):
     history: Mapped[str | None] = mapped_column(String, nullable=True)
     erp_reference: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    requester: Mapped[UserModel] = relationship()
+    cost_center: Mapped[CostCenterModel] = relationship()
+
 
 class ApprovalModel(Base):
     __tablename__ = "approvals"
@@ -100,3 +107,6 @@ class ApprovalModel(Base):
     level: Mapped[str] = mapped_column(String, nullable=False)
     decision: Mapped[str] = mapped_column(String, nullable=False, default="PENDING")
     decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    procurement_request: Mapped[ProcurementRequestModel] = relationship()
+    approver: Mapped[UserModel] = relationship()
