@@ -21,7 +21,7 @@ def resolved_request(amount: str) -> ProcurementRequest:
 
 def test_validate_within_budget_moves_to_validated_with_no_approval_decided_yet():
     cost_center = CostCenter(
-        id="CC-1", name="IT", budget_total=Money(Decimal("50000"), "CHF"), budget_spent=Money(Decimal("0"), "CHF")
+        id="CC-1", name="IT", budget_total=Money(Decimal(50000), "CHF"), budget_spent=Money(Decimal(0), "CHF")
     )
     use_case = ValidateRequestUseCase(
         cost_center_repository=InMemoryCostCenterRepository([cost_center]),
@@ -38,7 +38,7 @@ def test_validate_within_budget_moves_to_validated_with_no_approval_decided_yet(
 
 def test_validate_exceeding_budget_raises_and_does_not_change_status():
     cost_center = CostCenter(
-        id="CC-1", name="IT", budget_total=Money(Decimal("1000"), "CHF"), budget_spent=Money(Decimal("900"), "CHF")
+        id="CC-1", name="IT", budget_total=Money(Decimal(1000), "CHF"), budget_spent=Money(Decimal(900), "CHF")
     )
     use_case = ValidateRequestUseCase(
         cost_center_repository=InMemoryCostCenterRepository([cost_center]),

@@ -29,31 +29,31 @@ class Money:
         if not self.currency or not self.currency.strip():
             raise ValueError("Money currency must not be empty.")
 
-    def __add__(self, other: "Money") -> "Money":
+    def __add__(self, other: Money) -> Money:
         self._assert_same_currency(other)
         return Money(self.amount + other.amount, self.currency)
 
-    def __sub__(self, other: "Money") -> "Money":
+    def __sub__(self, other: Money) -> Money:
         self._assert_same_currency(other)
         return Money(self.amount - other.amount, self.currency)
 
-    def __gt__(self, other: "Money") -> bool:
+    def __gt__(self, other: Money) -> bool:
         self._assert_same_currency(other)
         return self.amount > other.amount
 
-    def __ge__(self, other: "Money") -> bool:
+    def __ge__(self, other: Money) -> bool:
         self._assert_same_currency(other)
         return self.amount >= other.amount
 
-    def __lt__(self, other: "Money") -> bool:
+    def __lt__(self, other: Money) -> bool:
         self._assert_same_currency(other)
         return self.amount < other.amount
 
-    def __le__(self, other: "Money") -> bool:
+    def __le__(self, other: Money) -> bool:
         self._assert_same_currency(other)
         return self.amount <= other.amount
 
-    def _assert_same_currency(self, other: "Money") -> None:
+    def _assert_same_currency(self, other: Money) -> None:
         if self.currency != other.currency:
             raise ValueError(
                 f"Cannot operate on different currencies: {self.currency} vs {other.currency}"

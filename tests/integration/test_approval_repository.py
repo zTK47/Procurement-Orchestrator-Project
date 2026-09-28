@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from procurement.domain.entities import Approval, ApprovalDecision, ApprovalLevel
@@ -13,7 +13,7 @@ def _seed_parent_rows(db_session, user_ids: list[str], request_ids: list[str]) -
     procurement_requests -- seed minimal valid parent rows first so the FK
     constraints do not reject the insert."""
     db_session.add(
-        CostCenterModel(id="CC-APR-TEST", name="Test CC", budget_total=Decimal("10000"), budget_spent=Decimal("0"))
+        CostCenterModel(id="CC-APR-TEST", name="Test CC", budget_total=Decimal(10000), budget_spent=Decimal(0))
     )
     for uid in user_ids:
         db_session.add(UserModel(id=uid, name=uid, email=f"{uid}@test.com", role="MANAGER"))
@@ -36,7 +36,7 @@ def test_save_and_list_for_request(db_session):
         approver_id="U-MAN-1",
         level=ApprovalLevel.MANAGER,
         decision=ApprovalDecision.APPROVED,
-        decided_at=datetime.now(timezone.utc),
+        decided_at=datetime.now(UTC),
     )
     repository.save(approval)
 

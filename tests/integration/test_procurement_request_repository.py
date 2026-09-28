@@ -14,7 +14,7 @@ def _make_user_and_cost_center(db_session):
 
     db_session.add(UserModel(id="U-1", name="Alice", email="alice@test.com", role="REQUESTER"))
     db_session.add(
-        CostCenterModel(id="CC-1", name="IT", budget_total=Decimal("50000"), budget_spent=Decimal("0"), currency="CHF")
+        CostCenterModel(id="CC-1", name="IT", budget_total=Decimal(50000), budget_spent=Decimal(0), currency="CHF")
     )
     db_session.commit()
 

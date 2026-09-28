@@ -14,8 +14,7 @@ from enum import Enum
 from procurement.domain.exceptions import (
     IllegalStatusTransitionError,
 )
-from procurement.domain.value_objects import Money, ParsedRequest, SKU
-
+from procurement.domain.value_objects import SKU, Money, ParsedRequest
 
 # --------------------------------------------------------------------------
 # Enums

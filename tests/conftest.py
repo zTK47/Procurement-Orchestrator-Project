@@ -62,15 +62,6 @@ def client(db_session):
     from fastapi.testclient import TestClient
 
     from procurement.infrastructure.main import create_app
-    from procurement.infrastructure.seed_db import seed_database
-    from procurement.interfaces.api.dependencies import (
-        get_approval_repository,
-        get_catalog_repository,
-        get_cost_center_repository,
-        get_procurement_repository,
-        get_supplier_repository,
-        get_user_repository,
-    )
     from procurement.infrastructure.repositories.sqlalchemy_approval_repository import (
         SqlAlchemyApprovalRepository,
     )
@@ -88,6 +79,15 @@ def client(db_session):
     )
     from procurement.infrastructure.repositories.sqlalchemy_user_repository import (
         SqlAlchemyUserRepository,
+    )
+    from procurement.infrastructure.seed_db import seed_database
+    from procurement.interfaces.api.dependencies import (
+        get_approval_repository,
+        get_catalog_repository,
+        get_cost_center_repository,
+        get_procurement_repository,
+        get_supplier_repository,
+        get_user_repository,
     )
 
     seed_database(db_session)  # no-op if already seeded in this transaction

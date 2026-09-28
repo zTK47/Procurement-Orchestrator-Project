@@ -35,14 +35,14 @@ def test_mark_parsed_transitions_to_parsed():
 def test_cannot_resolve_before_parsing():
     request = make_request()
     with pytest.raises(IllegalStatusTransitionError):
-        request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("1200"), "CHF"))
+        request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal(1200), "CHF"))
 
 
 def test_mark_resolved_records_stock_check():
     request = make_request()
     request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
 
-    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000"), "CHF"), stock_check="PASSED")
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal(6000), "CHF"), stock_check="PASSED")
 
     assert request.status == ProcurementStatus.RESOLVED
     assert request.stock_check == "PASSED"
@@ -53,7 +53,7 @@ def test_mark_validated_only_checks_budget_and_does_not_route_approval():
     approval routing -- that is UC-004 (CreateOrderUseCase)."""
     request = make_request()
     request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
-    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000"), "CHF"))
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal(6000), "CHF"))
 
     request.mark_validated(budget_check="PASSED")
 
@@ -65,7 +65,7 @@ def test_mark_validated_only_checks_budget_and_does_not_route_approval():
 def test_submit_for_approval_with_required_levels_goes_to_pending_approval():
     request = make_request()
     request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
-    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000"), "CHF"))
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal(6000), "CHF"))
     request.mark_validated()
 
     request.submit_for_approval([ApprovalLevel.MANAGER])
@@ -99,7 +99,7 @@ def test_approved_request_cannot_be_rejected():
 def test_rejected_request_is_terminal():
     request = make_request()
     request.mark_parsed(ParsedRequest(5, "Lenovo Laptop", "Laptop", 0.95))
-    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal("6000"), "CHF"))
+    request.mark_resolved(SKU("LEN-T14-G3"), "SUP-001", Money(Decimal(6000), "CHF"))
     request.mark_validated()
     request.submit_for_approval([ApprovalLevel.MANAGER])
     request.reject()

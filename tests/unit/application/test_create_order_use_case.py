@@ -20,7 +20,7 @@ def validated_request(amount: str) -> ProcurementRequest:
 def test_small_amount_needs_no_approval_and_goes_straight_to_approved():
     use_case = CreateOrderUseCase(
         procurement_repository=InMemoryProcurementRequestRepository(),
-        approval_routing_policy=ApprovalRoutingPolicy(Decimal("1000"), Decimal("10000")),
+        approval_routing_policy=ApprovalRoutingPolicy(Decimal(1000), Decimal(10000)),
     )
     request = validated_request("500")
 
@@ -33,7 +33,7 @@ def test_small_amount_needs_no_approval_and_goes_straight_to_approved():
 def test_large_amount_requires_manager_approval_and_goes_pending():
     use_case = CreateOrderUseCase(
         procurement_repository=InMemoryProcurementRequestRepository(),
-        approval_routing_policy=ApprovalRoutingPolicy(Decimal("1000"), Decimal("10000")),
+        approval_routing_policy=ApprovalRoutingPolicy(Decimal(1000), Decimal(10000)),
     )
     request = validated_request("5000")
 
@@ -46,7 +46,7 @@ def test_large_amount_requires_manager_approval_and_goes_pending():
 def test_very_large_amount_requires_both_approval_levels():
     use_case = CreateOrderUseCase(
         procurement_repository=InMemoryProcurementRequestRepository(),
-        approval_routing_policy=ApprovalRoutingPolicy(Decimal("1000"), Decimal("10000")),
+        approval_routing_policy=ApprovalRoutingPolicy(Decimal(1000), Decimal(10000)),
     )
     request = validated_request("15000")
 

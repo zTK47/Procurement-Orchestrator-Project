@@ -115,7 +115,7 @@ def test_final_approval_deducts_budget_from_cost_center():
 
     use_case.execute(request, "U-MAN", ApprovalLevel.MANAGER, ApprovalDecision.APPROVED)
 
-    assert cost_center.budget_spent == Money(Decimal("6000"), "CHF")
+    assert cost_center.budget_spent == Money(Decimal(6000), "CHF")
 
 
 def test_final_approval_raises_if_budget_no_longer_sufficient():

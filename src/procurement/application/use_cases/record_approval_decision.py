@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from procurement.application.ports.repositories import (
     ApprovalRepository,
@@ -79,7 +79,7 @@ class RecordApprovalDecisionUseCase:
             approver_id=approver_id,
             level=level,
             decision=decision,
-            decided_at=datetime.now(timezone.utc),
+            decided_at=datetime.now(UTC),
         )
         self._approval_repository.save(approval)
 

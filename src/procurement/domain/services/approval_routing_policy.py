@@ -16,8 +16,8 @@ from procurement.domain.value_objects import Money
 class ApprovalRoutingPolicy:
     def __init__(
         self,
-        manager_threshold: Decimal = Decimal("1000"),
-        budget_owner_threshold: Decimal = Decimal("10000"),
+        manager_threshold: Decimal = Decimal(1000),
+        budget_owner_threshold: Decimal = Decimal(10000),
     ) -> None:
         self._manager_threshold = manager_threshold
         self._budget_owner_threshold = budget_owner_threshold

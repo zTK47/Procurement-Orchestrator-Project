@@ -6,7 +6,12 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from procurement.infrastructure.models import CatalogItemModel, CostCenterModel, SupplierModel, UserModel
+from procurement.infrastructure.models import (
+    CatalogItemModel,
+    CostCenterModel,
+    SupplierModel,
+    UserModel,
+)
 from procurement.infrastructure.seed_data import build_seed_data
 
 
