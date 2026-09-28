@@ -92,14 +92,13 @@ def client(db_session):
 
     seed_database(db_session)  # no-op if already seeded in this transaction
 
-    app = create_app()
-    # NOTE: create_app()'s own startup event calls get_engine()/create_all()
-    # and seeds via the *real* app database connection (idempotent -- it's a
-    # no-op if suppliers already exist). That's intentional: it mirrors real
-    # deployment startup. Only the endpoints' actual repository operations
-    # are redirected to this test's isolated, rolled-back db_session via the
-    # overrides below, so requests/approvals created during a test never
-    # persist beyond it.
+    # init_db=False: the engine fixture already created the schema and the
+    # seed above ran inside this test's rolled-back transaction. Letting the
+    # app seed at startup too would open a second connection that blocks on
+    # this transaction's uncommitted rows (a cross-connection deadlock).
+    # All endpoint repositories are redirected to db_session below, so
+    # requests/approvals created during a test never persist beyond it.
+    app = create_app(init_db=False)
     app.dependency_overrides[get_procurement_repository] = lambda: SqlAlchemyProcurementRequestRepository(db_session)
     app.dependency_overrides[get_catalog_repository] = lambda: SqlAlchemyCatalogItemRepository(db_session)
     app.dependency_overrides[get_supplier_repository] = lambda: SqlAlchemySupplierRepository(db_session)

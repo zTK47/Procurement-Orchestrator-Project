@@ -24,8 +24,7 @@ from procurement.interfaces.api.procurement_router import router as procurement_
 STATIC_DIR = Path(__file__).parent.parent / "interfaces" / "static"
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+def _init_database() -> None:
     engine = get_engine()
     Base.metadata.create_all(engine)
     session_factory = get_session_factory()
@@ -34,12 +33,25 @@ async def lifespan(app: FastAPI):
         seed_database(session)
     finally:
         session.close()
-    yield
-    # No shutdown cleanup needed: get_engine()/get_session_factory() are
-    # process-lifetime cached (functools.lru_cache in db.py).
 
 
-def create_app() -> FastAPI:
+def create_app(init_db: bool = True) -> FastAPI:
+    """Build the FastAPI app.
+
+    init_db=False skips schema creation and seeding at startup; tests pass it
+    because their fixtures own the schema and seed through an isolated,
+    rolled-back session. Seeding here as well would open a second connection
+    that blocks on the test transaction's uncommitted rows.
+    """
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if init_db:
+            _init_database()
+        yield
+        # No shutdown cleanup needed: get_engine()/get_session_factory() are
+        # process-lifetime cached (functools.lru_cache in db.py).
+
     app = FastAPI(
         title="Procurement Orchestrator",
         description="AI-assisted enterprise procurement request pipeline.",
