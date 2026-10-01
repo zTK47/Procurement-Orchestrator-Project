@@ -40,3 +40,11 @@ class InMemoryOrderRequestRepository(OrderRequestRepository):
 
     def get_by_id(self, order_id: str) -> OrderRequest | None:
         return self._store.get(order_id)
+
+
+def default_suppliers() -> list[Supplier]:
+    """Demo suppliers for the in-memory app."""
+    return [
+        Supplier("SUP-OT", "Office Tech AG", "orders@officetech.example"),
+        Supplier("SUP-FS", "Furniture Swiss GmbH", "sales@furniture-swiss.example"),
+    ]
