@@ -153,12 +153,15 @@ class OrderRequest:
         self.validation_notes = []
         self.transition_to(OrderStatus.GENERATED)
 
-    def attach_pdf(self, pdf_reference: str) -> None:
+    def assert_can_attach_pdf(self) -> None:
         if self.status != OrderStatus.VALIDATED:
             raise OrderNotValidatedError(
                 f"A PDF can only be rendered for a VALIDATED OrderRequest, "
                 f"{self.id} is {self.status.value}."
             )
+
+    def attach_pdf(self, pdf_reference: str) -> None:
+        self.assert_can_attach_pdf()
         self.pdf_reference = pdf_reference
 
     def mark_sent(self, supplier_reference: str) -> None:
