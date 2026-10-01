@@ -4,7 +4,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from order_pdf_orchestration.domain.exceptions import InvalidLineItemError
+from order_pdf_orchestration.domain.exceptions import (
+    EmptyOrderRequestError,
+    IllegalStatusTransitionError,
+    InvalidLineItemError,
+    OrderNotValidatedError,
+    PdfNotRenderedError,
+)
 from order_pdf_orchestration.domain.value_objects import Money
 
 
@@ -14,6 +20,23 @@ class OrderStatus(str, Enum):
     NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
     VALIDATED = "VALIDATED"
     SENT = "SENT"
+
+
+_ALLOWED_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
+    OrderStatus.DRAFT: {OrderStatus.GENERATED},
+    OrderStatus.GENERATED: {OrderStatus.VALIDATED, OrderStatus.NEEDS_CLARIFICATION},
+    OrderStatus.NEEDS_CLARIFICATION: {OrderStatus.GENERATED},
+    OrderStatus.VALIDATED: {OrderStatus.SENT},
+    OrderStatus.SENT: set(),
+}
+
+_HAPPY_PATH_NEXT: dict[OrderStatus, OrderStatus | None] = {
+    OrderStatus.DRAFT: OrderStatus.GENERATED,
+    OrderStatus.GENERATED: OrderStatus.VALIDATED,
+    OrderStatus.NEEDS_CLARIFICATION: OrderStatus.GENERATED,
+    OrderStatus.VALIDATED: OrderStatus.SENT,
+    OrderStatus.SENT: None,
+}
 
 
 @dataclass
@@ -61,6 +84,22 @@ class OrderRequest:
     validation_notes: list[str] = field(default_factory=list)
     pdf_reference: str | None = None
     supplier_reference: str | None = None
+    history: list[OrderStatus] = field(default_factory=lambda: [OrderStatus.DRAFT])
+
+    def assert_can_transition_to(self, new_status: OrderStatus) -> None:
+        if new_status not in _ALLOWED_TRANSITIONS[self.status]:
+            raise IllegalStatusTransitionError(
+                f"Cannot transition OrderRequest {self.id} from "
+                f"{self.status.value} to {new_status.value}."
+            )
+
+    def transition_to(self, new_status: OrderStatus) -> None:
+        self.assert_can_transition_to(new_status)
+        self.status = new_status
+        self.history.append(new_status)
+
+    def next_state(self) -> OrderStatus | None:
+        return _HAPPY_PATH_NEXT[self.status]
 
     def total(self) -> Money | None:
         if not self.line_items:
@@ -69,3 +108,51 @@ class OrderRequest:
         for item in self.line_items:
             total = total + item.line_total()
         return total
+
+    def mark_generated(self, line_items: list[OrderLineItem]) -> None:
+        self.assert_can_transition_to(OrderStatus.GENERATED)
+        self.line_items = list(line_items)
+        self.transition_to(OrderStatus.GENERATED)
+
+    def mark_validated(self) -> None:
+        self.assert_can_transition_to(OrderStatus.VALIDATED)
+        if not self.line_items:
+            raise EmptyOrderRequestError(
+                f"OrderRequest {self.id} has no line items and cannot be validated."
+            )
+        self.validation_notes = []
+        self.transition_to(OrderStatus.VALIDATED)
+
+    def mark_needs_clarification(self, notes: list[str]) -> None:
+        self.assert_can_transition_to(OrderStatus.NEEDS_CLARIFICATION)
+        self.validation_notes = list(notes)
+        self.transition_to(OrderStatus.NEEDS_CLARIFICATION)
+
+    def revise_line_items(self, line_items: list[OrderLineItem]) -> None:
+        if self.status != OrderStatus.NEEDS_CLARIFICATION:
+            raise IllegalStatusTransitionError(
+                f"Line items of OrderRequest {self.id} can only be revised in "
+                f"{OrderStatus.NEEDS_CLARIFICATION.value}, not {self.status.value}."
+            )
+        if not line_items:
+            raise EmptyOrderRequestError("A revision needs at least one line item.")
+        self.line_items = list(line_items)
+        self.validation_notes = []
+        self.transition_to(OrderStatus.GENERATED)
+
+    def attach_pdf(self, pdf_reference: str) -> None:
+        if self.status != OrderStatus.VALIDATED:
+            raise OrderNotValidatedError(
+                f"A PDF can only be rendered for a VALIDATED OrderRequest, "
+                f"{self.id} is {self.status.value}."
+            )
+        self.pdf_reference = pdf_reference
+
+    def mark_sent(self, supplier_reference: str) -> None:
+        self.assert_can_transition_to(OrderStatus.SENT)
+        if self.pdf_reference is None:
+            raise PdfNotRenderedError(
+                f"OrderRequest {self.id} has no rendered PDF; render it before sending."
+            )
+        self.supplier_reference = supplier_reference
+        self.transition_to(OrderStatus.SENT)
