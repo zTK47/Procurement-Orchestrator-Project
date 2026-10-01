@@ -24,6 +24,18 @@ pytest tests/unit tests/integration tests/e2e
 - [ ] DEPLOY: Render + Neon, then record the live smoke-test result here
 - [ ] Optional: real LLM adapter (LiteLLM), configurable price-tie strategy, `ApprovalWorkflow` entity
 
+## Order PDF Orchestration (OPO) — second bounded context
+
+PHASE: 3
+STATUS: in-progress
+UC: OPO-UC-001 … OPO-UC-006 (specs written first, 2026-10-01)
+
+- [x] SPECIFY: `docs/specs/OPO-UC-001` … `OPO-UC-006`
+- [x] DESIGN: section in `docs/PROJECT.md`; ADR-007, ADR-008 (Proposed)
+- [ ] DEVELOP: one red → green commit pair per rule and use case
+- [ ] Team decision on ADR-007 and ADR-008
+- [ ] Later: real agent via the FHNW LiteLLM gateway (key from env), document upload (PDF/DOCX), persistence, Dockerfile entry for the second app
+
 ## Validation evidence
 
 | Date | Command | Result |

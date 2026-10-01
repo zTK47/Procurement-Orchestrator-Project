@@ -105,3 +105,53 @@ Deployment target: Render (Docker web service) — see `skills/ai-sdlc-5-deploy`
 In: free-text and catalog intake, mock LLM, mock ERP, approval workflow.
 Out (Future Work): OCI Punchout (ADR-005), real LLM via LiteLLM, real SAP adapter,
 configurable procurement strategy for price ties, partial stock / backorder.
+
+## Second bounded context: Order PDF Orchestration (OPO)
+
+Source: the team whiteboard "Free Text Order Orchestration". A buyer pastes a supplier's
+offer and writes a free-text order prompt; an agent (ADR-007) turns it into an
+`OrderRequest` with line items; business rules validate it, with a human fallback;
+a PDF is rendered and the order is sent to the supplier.
+
+Code: `src/order_pdf_orchestration/{domain,application,interfaces,infrastructure}/`,
+same Clean Architecture and Dependency Rule as above. Tests:
+`tests/unit/order_pdf_orchestration/`, `tests/e2e/order_pdf_orchestration/`.
+Specs: `docs/specs/OPO-UC-001` … `OPO-UC-006`. Decisions: ADR-007, ADR-008 (Proposed).
+
+Why physically separate from `src/procurement`: different language (offer, order line,
+supplier hand-off vs. requisition, sourcing, approval), different lifecycle and its own
+app, so neither context can break the other's tests. Nothing under `src/procurement`
+is imported. Trade-off: `Money` is re-implemented locally instead of shared — a few
+duplicated lines in exchange for two contexts that can evolve independently.
+
+Workflow (`OrderRequest.status`):
+
+```
+DRAFT → GENERATED → VALIDATED → SENT (terminal)
+GENERATED → NEEDS_CLARIFICATION → GENERATED (human revises line items, OPO-UC-006)
+```
+
+| Use case | Transition |
+|---|---|
+| OPO-UC-001 Upload Supplier Offer | — (stores the offer) |
+| OPO-UC-002 Generate Order Request | DRAFT → GENERATED |
+| OPO-UC-003 Validate Order Request | GENERATED → VALIDATED or NEEDS_CLARIFICATION |
+| OPO-UC-006 Revise Order Line Items | NEEDS_CLARIFICATION → GENERATED |
+| OPO-UC-004 Render Order PDF | VALIDATED (sets `pdf_reference`) |
+| OPO-UC-005 Send Order To Supplier | VALIDATED (with PDF) → SENT |
+
+Business rules: at least one line item to validate; every line item must match the
+offer text (else `NEEDS_CLARIFICATION`, never auto-approved); quantity > 0, unit
+price ≥ 0; total = Σ quantity × unit price; send only when `VALIDATED` and the PDF
+exists; `SENT` is terminal.
+
+Adapters (all mocks, offline and deterministic, same reasoning as ADR-004):
+`MockOrderGenerationAgent` (regex/keyword heuristic, output schema-checked with
+Pydantic, ADR-008), `MockDocumentRenderer`, `MockSupplierGateway`, in-memory repositories.
+PDF library: **fpdf2** — pure Python, no system packages, small API for a one-page
+document (reportlab is larger than this slice needs). License LGPL-3.0, used unmodified as a library.
+
+```bash
+uvicorn order_pdf_orchestration.infrastructure.main:app --reload --port 8001  # demo UI on /
+pytest tests/unit/order_pdf_orchestration tests/e2e/order_pdf_orchestration
+```
