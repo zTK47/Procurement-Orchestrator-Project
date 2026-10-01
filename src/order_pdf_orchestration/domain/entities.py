@@ -164,11 +164,14 @@ class OrderRequest:
         self.assert_can_attach_pdf()
         self.pdf_reference = pdf_reference
 
-    def mark_sent(self, supplier_reference: str) -> None:
+    def assert_can_send(self) -> None:
         self.assert_can_transition_to(OrderStatus.SENT)
         if self.pdf_reference is None:
             raise PdfNotRenderedError(
                 f"OrderRequest {self.id} has no rendered PDF; render it before sending."
             )
+
+    def mark_sent(self, supplier_reference: str) -> None:
+        self.assert_can_send()
         self.supplier_reference = supplier_reference
         self.transition_to(OrderStatus.SENT)
