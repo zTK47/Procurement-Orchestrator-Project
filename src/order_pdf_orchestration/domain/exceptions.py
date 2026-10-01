@@ -23,3 +23,11 @@ class OrderNotValidatedError(DomainError):
 
 class PdfNotRenderedError(DomainError):
     """An order is only sent to the supplier together with its rendered PDF."""
+
+
+class InvalidSupplierOfferError(DomainError):
+    """A supplier offer needs non-blank text."""
+
+
+class UnknownSupplierError(DomainError):
+    """The referenced supplier does not exist."""

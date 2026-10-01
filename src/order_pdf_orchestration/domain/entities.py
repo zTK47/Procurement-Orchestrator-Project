@@ -8,6 +8,7 @@ from order_pdf_orchestration.domain.exceptions import (
     EmptyOrderRequestError,
     IllegalStatusTransitionError,
     InvalidLineItemError,
+    InvalidSupplierOfferError,
     OrderNotValidatedError,
     PdfNotRenderedError,
 )
@@ -51,6 +52,10 @@ class SupplierOffer:
     id: str
     supplier_id: str
     raw_text: str
+
+    def __post_init__(self) -> None:
+        if not self.raw_text or not self.raw_text.strip():
+            raise InvalidSupplierOfferError("A supplier offer needs non-blank text.")
 
 
 @dataclass(frozen=True)
