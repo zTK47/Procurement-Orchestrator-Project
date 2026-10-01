@@ -114,8 +114,16 @@ class OrderRequest:
             total = total + item.line_total()
         return total
 
+    def assert_can_generate(self) -> None:
+        """Agent generation only starts from DRAFT; NEEDS_CLARIFICATION goes back to
+        GENERATED through revise_line_items (the human), never through the agent."""
+        if self.status != OrderStatus.DRAFT:
+            raise IllegalStatusTransitionError(
+                f"OrderRequest {self.id} is {self.status.value}; only a DRAFT is generated."
+            )
+
     def mark_generated(self, line_items: list[OrderLineItem]) -> None:
-        self.assert_can_transition_to(OrderStatus.GENERATED)
+        self.assert_can_generate()
         self.line_items = list(line_items)
         self.transition_to(OrderStatus.GENERATED)
 

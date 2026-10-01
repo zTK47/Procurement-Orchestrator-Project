@@ -8,7 +8,7 @@ from order_pdf_orchestration.application.ports.repositories import (
     OrderRequestRepository,
     SupplierOfferRepository,
 )
-from order_pdf_orchestration.domain.entities import OrderRequest, OrderStatus
+from order_pdf_orchestration.domain.entities import OrderRequest
 from order_pdf_orchestration.domain.exceptions import UnknownSupplierOfferError
 
 
@@ -24,7 +24,7 @@ class GenerateOrderRequestUseCase:
         self._orders = order_repository
 
     def execute(self, order: OrderRequest) -> OrderRequest:
-        order.assert_can_transition_to(OrderStatus.GENERATED)
+        order.assert_can_generate()
         offer = self._offers.get_by_id(order.supplier_offer_id)
         if offer is None:
             raise UnknownSupplierOfferError(
