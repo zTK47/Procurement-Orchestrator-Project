@@ -129,3 +129,12 @@ def test_rule_6_sent_is_terminal(action):
         action(order)
     assert order.status == OrderStatus.SENT
     assert order.supplier_reference == "SUP-REF-1"
+
+
+def test_agent_generation_is_only_for_drafts_not_a_way_around_human_revision():
+    order = generated()
+    order.mark_needs_clarification(["'Unicorn' is not in the supplier offer."])
+
+    with pytest.raises(IllegalStatusTransitionError):
+        order.mark_generated([item("Unicorn")])
+    assert order.status == OrderStatus.NEEDS_CLARIFICATION

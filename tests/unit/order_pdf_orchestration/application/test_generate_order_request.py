@@ -98,3 +98,16 @@ def test_agent_failure_stores_nothing():
 
     assert order.status == OrderStatus.DRAFT
     assert orders.get_by_id("OR-1") is None
+
+
+def test_a_request_needing_clarification_is_not_regenerated_by_the_agent():
+    agent = FakeAgent()
+    use_case, _ = setup(agent)
+    order = draft()
+    order.mark_generated([LAPTOPS])
+    order.mark_needs_clarification(["check"])
+
+    with pytest.raises(IllegalStatusTransitionError):
+        use_case.execute(order)
+
+    assert agent.calls == []
