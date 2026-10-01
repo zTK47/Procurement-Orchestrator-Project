@@ -21,7 +21,7 @@ def order_with(*descriptions: str) -> OrderRequest:
     order = OrderRequest(id="OR-1", supplier_offer_id="OF-1", prompt_text="...")
     order.mark_generated(
         [
-            OrderLineItem(id=f"LI-{n}", description=d, quantity=1, unit_price=Money(Decimal("1"), "CHF"))
+            OrderLineItem(id=f"LI-{n}", description=d, quantity=1, unit_price=Money(Decimal(1), "CHF"))
             for n, d in enumerate(descriptions, start=1)
         ]
     )

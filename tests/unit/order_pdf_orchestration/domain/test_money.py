@@ -23,7 +23,7 @@ def test_money_adds_amounts_in_the_same_currency():
 
 def test_money_refuses_to_mix_currencies():
     with pytest.raises(ValueError):
-        Money(Decimal("1"), "CHF") + Money(Decimal("1"), "EUR")
+        Money(Decimal(1), "CHF") + Money(Decimal(1), "EUR")
 
 
 def test_money_times_a_quantity():
@@ -31,4 +31,4 @@ def test_money_times_a_quantity():
 
 
 def test_zero_money_in_a_currency():
-    assert Money.zero("EUR") == Money(Decimal("0"), "EUR")
+    assert Money.zero("EUR") == Money(Decimal(0), "EUR")

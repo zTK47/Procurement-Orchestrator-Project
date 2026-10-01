@@ -27,7 +27,7 @@ from order_pdf_orchestration.infrastructure.in_memory_repositories import (
 
 
 def line(description: str) -> OrderLineItem:
-    return OrderLineItem(id="LI-1", description=description, quantity=1, unit_price=Money(Decimal("189"), "CHF"))
+    return OrderLineItem(id="LI-1", description=description, quantity=1, unit_price=Money(Decimal(189), "CHF"))
 
 
 def needs_clarification() -> OrderRequest:

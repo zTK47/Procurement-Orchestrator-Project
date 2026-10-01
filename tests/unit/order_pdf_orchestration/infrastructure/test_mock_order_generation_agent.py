@@ -45,14 +45,14 @@ def test_item_not_in_the_offer_is_kept_with_price_zero_for_validation_to_flag():
     items = MockOrderGenerationAgent().generate("2 office chairs, 1 docking station", OFFER)
 
     assert summary(items) == [
-        ("office chairs", 2, Money(Decimal("0"), "CHF")),
+        ("office chairs", 2, Money(Decimal(0), "CHF")),
         ("USB-C Docking Station", 1, Money(Decimal("189.00"), "CHF")),
     ]
 
 
 def test_partial_keyword_overlap_is_not_treated_as_a_match():
     items = MockOrderGenerationAgent().generate("4 USB-C monitors", OFFER)
-    assert summary(items) == [("USB-C monitors", 4, Money(Decimal("0"), "CHF"))]
+    assert summary(items) == [("USB-C monitors", 4, Money(Decimal(0), "CHF"))]
 
 
 def test_valid_raw_output_is_converted_to_domain_line_items():

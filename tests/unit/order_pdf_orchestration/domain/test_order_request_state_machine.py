@@ -15,7 +15,7 @@ from order_pdf_orchestration.domain.value_objects import Money
 
 
 def item(description: str = "Dell Latitude 5440 Laptop") -> OrderLineItem:
-    return OrderLineItem(id="LI-1", description=description, quantity=1, unit_price=Money(Decimal("10"), "CHF"))
+    return OrderLineItem(id="LI-1", description=description, quantity=1, unit_price=Money(Decimal(10), "CHF"))
 
 
 def draft() -> OrderRequest:
