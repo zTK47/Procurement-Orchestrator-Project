@@ -31,3 +31,7 @@ class InvalidSupplierOfferError(DomainError):
 
 class UnknownSupplierError(DomainError):
     """The referenced supplier does not exist."""
+
+
+class UnknownSupplierOfferError(DomainError):
+    """The referenced supplier offer does not exist."""
