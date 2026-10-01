@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.7",
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
+    "fpdf2>=2.8",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +28,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 procurement = ["interfaces/static/*.html"]
+order_pdf_orchestration = ["interfaces/static/*.html"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
